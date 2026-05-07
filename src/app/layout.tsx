@@ -1,0 +1,48 @@
+/**
+ * app/layout.tsx — Root Layout
+ *
+ * Wraps the entire application with:
+ *  - TanStack Query provider (client-side data fetching)
+ *  - Sonner toast notifications
+ *  - Font configuration (Inter via next/font)
+ */
+
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
+import { Providers } from "@/components/shared/providers";
+import { Toaster } from "sonner";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+});
+
+export const metadata: Metadata = {
+  title: {
+    default: "EduShare — Collaborative Learning Platform",
+    template: "%s | EduShare",
+  },
+  description:
+    "A collaborative learning resource exchange platform for polytechnic college students and faculty.",
+  keywords: ["education", "learning", "resources", "collaboration", "polytechnic"],
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${inter.variable} font-sans antialiased`}>
+        {/* TanStack Query + other client-side providers */}
+        <Providers>
+          {children}
+          {/* Global toast notification renderer */}
+          <Toaster position="top-right" richColors closeButton />
+        </Providers>
+      </body>
+    </html>
+  );
+}

@@ -1,0 +1,209 @@
+// This is your Prisma schema file for EduShare
+// Learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  // DATABASE_URL  → Supabase SESSION MODE pooler (for runtime queries)
+  // DIRECT_URL    → Supabase direct connection (for migrations only)
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum Role {
+  STUDENT
+  FACULTY
+  ADMIN
+}
+
+enum SubmissionStatus {
+  PENDING
+  SUBMITTED
+  REVIEWED
+}
+
+enum ReportReason {
+  INAPPROPRIATE
+  BULLYING
+  UNRELATED
+  SPAM
+  OTHER
+}
+
+enum ReportStatus {
+  PENDING
+  RESOLVED
+  DISMISSED
+}
+
+// ─── Models ───────────────────────────────────────────────────────────────────
+
+model User {
+  id         String   @id @default(cuid())
+  /// Must match the Supabase Auth user id (auth.users.id)
+  email      String   @unique
+  name       String
+  avatarUrl  String?
+  department String?
+  role       Role     @default(STUDENT)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  taughtClasses   Class[]            @relation("FacultyClasses")
+  memberships     ClassMembership[]
+  posts           Post[]
+  comments        Comment[]
+  submissions     Submission[]
+  notifications   Notification[]
+  reportsFiled    Report[]           @relation("ReporterRelation")
+  reportsAgainst  Report[]           @relation("ReportedUserRelation")
+
+  @@map("users")
+}
+
+model Class {
+  id          String   @id @default(cuid())
+  name        String
+  subject     String
+  description String?
+  classCode   String   @unique
+  inviteLink  String?  @unique
+  isArchived  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  // Relations
+  facultyId   String
+  faculty     User              @relation("FacultyClasses", fields: [facultyId], references: [id])
+  members     ClassMembership[]
+  posts       Post[]
+
+  @@map("classes")
+}
+
+model ClassMembership {
+  id        String   @id @default(cuid())
+  joinedAt  DateTime @default(now())
+
+  // Relations
+  classId   String
+  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  studentId String
+  student   User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([classId, studentId])
+  @@map("class_memberships")
+}
+
+model Post {
+  id                 String    @id @default(cuid())
+  content            String
+  category           String?
+  isPinned           Boolean   @default(false)
+  /// Set to true when this post requires student submissions (like an assignment)
+  isSubmissionPost   Boolean   @default(false)
+  submissionDeadline DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  // Relations
+  classId    String
+  class      Class        @relation(fields: [classId], references: [id], onDelete: Cascade)
+  authorId   String
+  author     User         @relation(fields: [authorId], references: [id])
+  files      PostFile[]
+  comments   Comment[]
+  submissions Submission[]
+  reports    Report[]
+
+  @@map("posts")
+}
+
+model PostFile {
+  id       String @id @default(cuid())
+  fileName String
+  fileUrl  String
+  fileType String
+  fileSize Int    /// File size in bytes
+
+  // Relations
+  postId   String
+  post     Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@map("post_files")
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+
+  // Relations
+  postId    String
+  post      Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User   @relation(fields: [authorId], references: [id])
+
+  @@map("comments")
+}
+
+model Submission {
+  id          String           @id @default(cuid())
+  fileUrl     String
+  fileName    String
+  fileType    String
+  status      SubmissionStatus @default(PENDING)
+  submittedAt DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  // Relations
+  postId      String
+  post        Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  studentId   String
+  student     User   @relation(fields: [studentId], references: [id])
+
+  @@unique([postId, studentId])
+  @@map("submissions")
+}
+
+model Report {
+  id          String       @id @default(cuid())
+  reason      ReportReason
+  description String?
+  status      ReportStatus @default(PENDING)
+  actionTaken String?
+  createdAt   DateTime     @default(now())
+  resolvedAt  DateTime?
+
+  // Relations
+  reporterId      String
+  reporter        User   @relation("ReporterRelation", fields: [reporterId], references: [id])
+  reportedUserId  String?
+  reportedUser    User?  @relation("ReportedUserRelation", fields: [reportedUserId], references: [id])
+  postId          String?
+  post            Post?  @relation(fields: [postId], references: [id], onDelete: SetNull)
+
+  @@map("reports")
+}
+
+model Notification {
+  id          String   @id @default(cuid())
+  type        String   /// e.g. "NEW_POST", "NEW_COMMENT", "SUBMISSION_REVIEWED"
+  message     String
+  isRead      Boolean  @default(false)
+  /// Optional: ID of the related entity (post, submission, etc.)
+  referenceId String?
+  createdAt   DateTime @default(now())
+
+  // Relations
+  userId      String
+  user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
