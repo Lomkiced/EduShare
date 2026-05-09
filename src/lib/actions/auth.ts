@@ -14,57 +14,62 @@ import {
 // LOGIN
 // ─────────────────────────────────────────────────────────────────────────────
 export async function loginAction(data: LoginFormValues) {
-  const supabase = createClient();
-  const { email, password } = data;
+  try {
+    const supabase = createClient();
+    const { email, password } = data;
 
-  // 1. Authenticate with Supabase Auth
-  const { data: authData, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
+    // 1. Authenticate with Supabase Auth
+    const { data: authData, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-  if (error) {
-    return { success: false as const, error: error.message };
+    if (error) {
+      return { success: false as const, error: error.message };
+    }
+
+    if (!authData.user) {
+      return { success: false as const, error: "Authentication failed." };
+    }
+
+    // 2. Fetch the authoritative role from Prisma (cannot be spoofed by client)
+    const dbUser = await prisma.user.findUnique({
+      where: { id: authData.user.id },
+      select: { role: true, name: true, isActive: true },
+    });
+
+    if (!dbUser) {
+      // Sign them back out — no profile means no access
+      await supabase.auth.signOut();
+      return {
+        success: false as const,
+        error:
+          "No profile found for this account. Please contact your administrator.",
+      };
+    }
+
+    if (!dbUser.isActive) {
+      await supabase.auth.signOut();
+      return {
+        success: false as const,
+        error: "Your account has been deactivated. Please contact an administrator.",
+      };
+    }
+
+    // 3. Write the role into Supabase user_metadata
+    await supabase.auth.updateUser({
+      data: { role: dbUser.role, name: dbUser.name },
+    });
+
+    return { success: true as const, role: dbUser.role };
+  } catch (err: any) {
+    console.error("[loginAction] Unexpected error:", err);
+    // If it's a Prisma connection error or similar, expose a generic but helpful message
+    if (err?.message?.includes("Invalid `prisma.user.findUnique()` invocation") || err?.name === 'PrismaClientInitializationError') {
+      return { success: false as const, error: "Database connection failed. Please check your Vercel Environment Variables (DATABASE_URL)." };
+    }
+    return { success: false as const, error: err.message || "An internal server error occurred." };
   }
-
-  if (!authData.user) {
-    return { success: false as const, error: "Authentication failed." };
-  }
-
-  // 2. Fetch the authoritative role from Prisma (cannot be spoofed by client)
-  const dbUser = await prisma.user.findUnique({
-    where: { id: authData.user.id },
-    select: { role: true, name: true, isActive: true },
-  });
-
-  if (!dbUser) {
-    // Sign them back out — no profile means no access
-    await supabase.auth.signOut();
-    return {
-      success: false as const,
-      error:
-        "No profile found for this account. Please contact your administrator.",
-    };
-  }
-
-  if (!dbUser.isActive) {
-    await supabase.auth.signOut();
-    return {
-      success: false as const,
-      error: "Your account has been deactivated. Please contact an administrator.",
-    };
-  }
-
-  // 3. Write the role into Supabase user_metadata so the middleware can
-  //    perform fast role-based routing WITHOUT hitting the DB on every request.
-  //    We use the admin client here because the anon client can only update
-  //    its own metadata via updateUser() — but that also works for the current
-  //    session. We prefer the standard client for the session update:
-  await supabase.auth.updateUser({
-    data: { role: dbUser.role, name: dbUser.name },
-  });
-
-  return { success: true as const, role: dbUser.role };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
