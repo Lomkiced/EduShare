@@ -19,7 +19,7 @@
  */
 
 import { PrismaClient, Role, ReportReason, ReportStatus, SubmissionStatus } from "@prisma/client";
-import { generateClassCode } from "../src/lib/utils";
+import { generateSectionCode } from "../src/lib/utils";
 
 const prisma = new PrismaClient();
 
