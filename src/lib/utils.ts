@@ -71,14 +71,14 @@ export function getFileExtension(fileName: string): string {
   return fileName.split(".").pop()?.toLowerCase() ?? "";
 }
 
-// ─── Class Code Generator ─────────────────────────────────────────────────────
+// ─── Section Code Generator ─────────────────────────────────────────────────────
 
 /**
- * Generates a random 6-character alphanumeric class code (uppercase).
- * Used when a faculty member creates a new class.
- * @example generateClassCode() → "A3X9TK"
+ * Generates a random 6-character alphanumeric section code (uppercase).
+ * Used when a faculty member creates a new section.
+ * @example generateSectionCode() → "A3X9TK"
  */
-export function generateClassCode(): string {
+export function generateSectionCode(): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   return Array.from({ length: 6 }, () =>
     chars.charAt(Math.floor(Math.random() * chars.length))

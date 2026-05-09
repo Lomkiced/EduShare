@@ -17,3 +17,9 @@ export const useFacultySidebarStore = create<SidebarStore>((set) => ({
   toggle: () => set((s) => ({ isOpen: !s.isOpen })),
   close: () => set({ isOpen: false }),
 }));
+
+export const useStudentSidebarStore = create<SidebarStore>((set) => ({
+  isOpen: false,
+  toggle: () => set((s) => ({ isOpen: !s.isOpen })),
+  close: () => set({ isOpen: false }),
+}));

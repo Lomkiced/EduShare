@@ -1,6 +1,6 @@
 import React from "react";
-import FacultyStatCard from "@/components/faculty/FacultyStatCard";
-import ActiveClassesSection from "@/components/faculty/ActiveClassesSection";
+import StatCard from "@/components/shared/StatCard";
+import MySectionsSection from "@/components/faculty/MySectionsSection";
 
 export default function FacultyDashboardPage() {
   return (
@@ -9,11 +9,11 @@ export default function FacultyDashboardPage() {
       <div className="hidden md:flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
           <h2 className="font-headline-xl text-headline-xl text-primary tracking-tight">
-            Faculty Dashboard
+            Introduction to Computing
           </h2>
           <p className="font-body-lg text-body-lg text-on-surface-variant mt-2 max-w-2xl">
-            Overview of your current classes, student engagement, and pending
-            administrative tasks.
+            Manage your sections, monitor student engagement, and 
+            review submissions for Introduction to Computing.
           </p>
         </div>
         
@@ -46,21 +46,21 @@ export default function FacultyDashboardPage() {
 
       {/* Quick Stats Strip */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <FacultyStatCard
+        <StatCard
           label="Total Students"
           value="142"
           icon="groups"
           iconBg="bg-primary-fixed"
           iconColor="text-on-primary-fixed"
         />
-        <FacultyStatCard
+        <StatCard
           label="Active Posts"
           value="48"
           icon="forum"
           iconBg="bg-secondary-fixed"
           iconColor="text-on-secondary-fixed"
         />
-        <FacultyStatCard
+        <StatCard
           label="Pending Submissions"
           value="24"
           icon="inventory_2"
@@ -71,8 +71,8 @@ export default function FacultyDashboardPage() {
         />
       </section>
 
-      {/* Active Classes */}
-      <ActiveClassesSection />
+      {/* My Sections */}
+      <MySectionsSection />
     </>
   );
 }

@@ -1,7 +1,7 @@
 import React from "react";
 import { cn } from "@/lib/utils";
 
-interface FacultyStatCardProps {
+interface StatCardProps {
   label: string;
   value: string | number;
   icon: string; // Material Symbol name
@@ -11,7 +11,7 @@ interface FacultyStatCardProps {
   alertLabel?: string; // e.g. "Action Needed"
 }
 
-export default function FacultyStatCard({
+export default function StatCard({
   label,
   value,
   icon,
@@ -19,7 +19,7 @@ export default function FacultyStatCard({
   iconColor,
   isAlert,
   alertLabel,
-}: FacultyStatCardProps) {
+}: StatCardProps) {
   return (
     <div
       className={cn(

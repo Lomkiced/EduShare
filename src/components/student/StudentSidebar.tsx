@@ -1,71 +1,74 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useFacultySidebarStore } from "@/store/sidebarStore";
+import { useStudentSidebarStore } from "@/store/sidebarStore";
 import { logoutAction } from "@/lib/actions/auth";
+import JoinClassModal from "./JoinClassModal";
 
 const navItems = [
-  { label: "Dashboard", icon: "dashboard", href: "/faculty/dashboard" },
-  { label: "My Sections", icon: "school", href: "/faculty/classes" },
-  { label: "Section Feed", icon: "forum", href: "/faculty/feed" },
-  { label: "Submissions", icon: "assignment", href: "/faculty/submissions" },
-  { label: "Analytics", icon: "analytics", href: "/faculty/analytics" },
+  { label: "Dashboard", icon: "dashboard", href: "/student/dashboard" },
+  { label: "My Section", icon: "school", href: "/student/section" },
+  { label: "Section Feed", icon: "forum", href: "/student/feed" },
+  { label: "My Submissions", icon: "assignment", href: "/student/submissions" },
+  { label: "Notifications", icon: "notifications", href: "/student/notifications" },
 ];
 
 const footerItems = [
-  { label: "Settings", icon: "settings", href: "/faculty/settings" },
+  { label: "Profile", icon: "account_circle", href: "/student/profile" },
+  { label: "Support", icon: "contact_support", href: "/student/support" },
 ];
 
-export default function FacultySidebar() {
+export default function StudentSidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { isOpen, close } = useFacultySidebarStore();
+  const { isOpen, close } = useStudentSidebarStore();
+  const [joinModalOpen, setJoinModalOpen] = useState(false);
 
   const handleLogout = async () => {
     await logoutAction();
     router.push("/login");
   };
 
-  const handleCreateSection = () => {
-    console.log("Open Create Section Modal");
-  };
-
   const SidebarContent = (
     <div className="bg-slate-50 font-sans text-sm h-screen w-64 border-r border-slate-200 flex flex-col py-6 px-4 gap-2 z-40">
       {/* Header Section */}
-      <div className="mb-8 px-2 flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center text-on-primary overflow-hidden shrink-0">
-          <span
-            className="material-symbols-outlined"
-            style={{ fontVariationSettings: "'FILL' 1" }}
-          >
-            school
-          </span>
+      <div className="mb-8 px-2 flex flex-col gap-2">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center text-on-primary overflow-hidden shrink-0">
+            <span
+              className="material-symbols-outlined"
+              style={{ fontVariationSettings: "'FILL' 1" }}
+            >
+              school
+            </span>
+          </div>
+          <div>
+            <h1 className="text-lg font-black text-blue-900 font-headline-md tracking-tight leading-none">
+              Student Portal
+            </h1>
+            <p className="text-slate-500 font-label-sm text-xs uppercase tracking-wider mt-1">
+              Intro to Computing
+            </p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-lg font-black text-blue-900 font-headline-md tracking-tight leading-none">
-            Faculty Portal
-          </h1>
-          <p className="text-slate-500 font-label-sm text-xs uppercase tracking-wider mt-1">
-            Intro to Computing
-          </p>
-        </div>
-      </div>
 
-      <button
-        onClick={handleCreateSection}
-        className="w-full bg-secondary text-on-secondary rounded-lg py-2 px-6 font-label-md text-label-md hover:bg-opacity-90 transition-colors flex items-center justify-center gap-2 shadow-sm mb-4"
-      >
-        <span className="material-symbols-outlined text-[18px]">add</span>
-        Create New Section
-      </button>
+        <button
+          onClick={() => setJoinModalOpen(true)}
+          className="mt-4 w-full bg-secondary text-on-secondary rounded-lg py-2 px-6 font-label-md text-label-md hover:bg-opacity-90 transition-colors flex items-center justify-center gap-2 shadow-sm"
+        >
+          <span className="material-symbols-outlined text-[18px]">add</span>
+          Join a Section
+        </button>
+      </div>
 
       {/* Main Navigation */}
       <div className="flex-1 flex flex-col gap-1">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
+          const isNotifications = item.label === "Notifications";
+
           return (
             <Link
               key={item.href}
@@ -84,6 +87,11 @@ export default function FacultySidebar() {
                 {item.icon}
               </span>
               {item.label}
+              {isNotifications && (
+                <span className="ml-auto bg-error text-on-error text-[10px] font-bold px-[6px] py-[2px] rounded-full leading-none">
+                  3
+                </span>
+              )}
             </Link>
           );
         })}
@@ -153,6 +161,12 @@ export default function FacultySidebar() {
           {SidebarContent}
         </div>
       </div>
+
+      {/* Modals */}
+      <JoinClassModal
+        isOpen={joinModalOpen}
+        onClose={() => setJoinModalOpen(false)}
+      />
     </>
   );
 }

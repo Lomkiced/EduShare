@@ -37,7 +37,7 @@ export default function AdminDashboardPage() {
           badge={{ label: "12%", type: "success" }}
         />
         <StatCard
-          label="Active Classes"
+          label="My Sections"
           value="450"
           icon="class"
           iconBg="bg-secondary-fixed"
