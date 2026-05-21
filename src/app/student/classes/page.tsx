@@ -1,203 +1,84 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
-import { ClassCard, ExtendedClass } from "@/components/student/class-card";
-import JoinClassModal from "@/components/student/JoinClassModal";
+import React from "react";
+import Link from "next/link";
+import MySection from "@/components/student/MySection";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-const MOCK_CLASSES: ExtendedClass[] = [
-  {
-    id: "c1",
-    name: "Introduction to Computing",
-    subject: "Computer Science",
-    description: "Learn the fundamentals of computer science, algorithms, and computational thinking.",
-    classCode: "CS101",
-    isArchived: false,
-    faculty: {
-      id: "fac_1",
-      name: "Dr. Alan Turing",
-      avatarUrl: null,
-    },
-    memberCount: 32,
-  },
-  {
-    id: "c2",
-    name: "Data Structures and Algorithms",
-    subject: "Computer Science",
-    description: "An in-depth look at organizing data and building efficient algorithms for complex problems.",
-    classCode: "CS201",
-    isArchived: false,
-    faculty: {
-      id: "fac_2",
-      name: "Grace Hopper",
-      avatarUrl: null,
-    },
-    memberCount: 28,
-  },
-  {
-    id: "c3",
-    name: "Calculus I",
-    subject: "Mathematics",
-    description: "Limits, derivatives, and integrals of functions of a single variable.",
-    classCode: "MATH101",
-    isArchived: false,
-    faculty: {
-      id: "fac_3",
-      name: "Prof. Isaac Newton",
-      avatarUrl: null,
-    },
-    memberCount: 45,
-  },
-  {
-    id: "c4",
-    name: "Physics 101: Mechanics",
-    subject: "Physics",
-    description: "Classical mechanics, thermodynamics, and the fundamental laws of motion.",
-    classCode: "PHYS101",
-    isArchived: false,
-    faculty: {
-      id: "fac_4",
-      name: "Dr. Albert Einstein",
-      avatarUrl: null,
-    },
-    memberCount: 38,
-  },
-  {
-    id: "c5",
-    name: "Web Development",
-    subject: "Information Technology",
-    description: "Building modern, responsive web applications using React and Next.js.",
-    classCode: "IT302",
-    isArchived: false,
-    faculty: {
-      id: "fac_5",
-      name: "Tim Berners-Lee",
-      avatarUrl: null,
-    },
-    memberCount: 22,
-  },
-  {
-    id: "c6",
-    name: "Introduction to Psychology",
-    subject: "Psychology",
-    description: "Understanding human behavior, cognitive processes, and emotional development.",
-    classCode: "PSYCH101",
-    isArchived: true,
-    faculty: {
-      id: "fac_6",
-      name: "Dr. Sigmund Freud",
-      avatarUrl: null,
-    },
-    memberCount: 50,
-  }
-];
-
 export default function StudentClassesPage() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All Classes");
-  const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
-
-  const filteredClasses = useMemo(() => {
-    return MOCK_CLASSES.filter((cls) => {
-      const query = searchQuery.toLowerCase();
-      const matchesSearch = 
-        cls.name.toLowerCase().includes(query) ||
-        cls.subject.toLowerCase().includes(query) ||
-        cls.classCode.toLowerCase().includes(query);
-      
-      let matchesFilter = true;
-      if (statusFilter === "Active") {
-        matchesFilter = !cls.isArchived;
-      } else if (statusFilter === "Archived") {
-        matchesFilter = cls.isArchived;
-      }
-      
-      return matchesSearch && matchesFilter;
-    });
-  }, [searchQuery, statusFilter]);
-
   return (
     <div className="p-6 md:p-8 max-w-[1600px] mx-auto w-full">
-      <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-on-surface tracking-tight mb-2">My Classes</h1>
-          <p className="text-on-surface-variant text-lg">View and manage your enrolled sections.</p>
-        </div>
-        <Button 
-          onClick={() => setIsJoinModalOpen(true)}
-          className="bg-primary hover:bg-primary/90 text-on-primary flex items-center gap-2 h-11 px-6 shadow-sm w-fit"
-        >
-          <span className="material-symbols-outlined text-[20px]">add</span>
-          Join Class
-        </Button>
+      {/* Hero Header via MySection component */}
+      <div className="mb-8">
+        <MySection />
       </div>
 
-      {/* Control Bar */}
-      <div className="bg-surface-container-lowest/60 backdrop-blur-xl border border-outline-variant/30 rounded-2xl p-4 mb-8 flex flex-col sm:flex-row gap-4 items-center shadow-sm">
-        <div className="relative w-full sm:w-96 flex-1">
-          <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">
-            search
-          </span>
-          <input
-            type="text"
-            placeholder="Search by class name, subject, or code..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-surface-container pl-12 pr-4 py-3 rounded-xl border border-outline-variant/50 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-body-lg"
-          />
-        </div>
-        <div className="relative w-full sm:w-64">
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="w-full appearance-none bg-surface-container px-4 py-3 rounded-xl border border-outline-variant/50 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-body-lg cursor-pointer"
-          >
-            <option value="All Classes">All Classes</option>
-            <option value="Active">Active</option>
-            <option value="Archived">Archived</option>
-          </select>
-          <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">
-            expand_more
-          </span>
+      {/* Section Hub layout */}
+      <div className="mt-8">
+        <h2 className="text-2xl font-bold text-on-surface mb-6 flex items-center gap-2">
+          <span className="material-symbols-outlined text-primary">apps</span>
+          Section Hub
+        </h2>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Card 1: Classmates Preview */}
+          <Card className="border-outline-variant/30 shadow-sm bg-surface-container-lowest hover:shadow-md hover:border-primary/30 transition-all duration-300">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-xl">
+                <span className="material-symbols-outlined text-primary">groups</span>
+                Classmates Preview
+              </CardTitle>
+              <CardDescription>View your peers in the section</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-6">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center">
+                  <span className="material-symbols-outlined text-2xl">school</span>
+                </div>
+                <div>
+                  <p className="font-bold text-lg text-on-surface">32 Students Enrolled</p>
+                  <p className="text-sm text-on-surface-variant">Intro to Computing • Section C1</p>
+                </div>
+              </div>
+              <Button asChild className="w-full sm:w-fit bg-secondary hover:bg-secondary/90 text-on-secondary shadow-sm">
+                <Link href="/student/classes/c1/members" className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[18px]">group_search</span>
+                  View Full Roster
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Card 2: Recent Feed */}
+          <Card className="border-outline-variant/30 shadow-sm bg-surface-container-lowest hover:shadow-md hover:border-primary/30 transition-all duration-300">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-xl">
+                <span className="material-symbols-outlined text-secondary">forum</span>
+                Recent Feed
+              </CardTitle>
+              <CardDescription>Stay updated with class announcements</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-6">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center">
+                  <span className="material-symbols-outlined text-2xl">campaign</span>
+                </div>
+                <div>
+                  <p className="font-bold text-lg text-on-surface">5 New Announcements</p>
+                  <p className="text-sm text-on-surface-variant">Latest updates from your instructor</p>
+                </div>
+              </div>
+              <Button asChild variant="outline" className="w-full sm:w-fit border-outline-variant/50 hover:bg-surface-container">
+                <Link href="/student/classes/c1/feed" className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+                  Go to Feed
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </div>
-
-      {/* Grid Layout */}
-      {filteredClasses.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredClasses.map((cls) => (
-            <ClassCard key={cls.id} classData={cls} />
-          ))}
-        </div>
-      ) : (
-        <div className="flex flex-col items-center justify-center py-24 text-center bg-surface-container-lowest/30 rounded-2xl border border-outline-variant/20 border-dashed">
-          <span className="material-symbols-outlined text-6xl text-on-surface-variant mb-4 opacity-50">
-            school
-          </span>
-          <h3 className="text-xl font-bold text-on-surface mb-2">
-            No classes found
-          </h3>
-          <p className="text-on-surface-variant max-w-md mx-auto mb-6">
-            We couldn&apos;t find any classes matching your current search and filter criteria.
-          </p>
-          <Button 
-            variant="outline" 
-            onClick={() => {
-              setSearchQuery("");
-              setStatusFilter("All Classes");
-            }}
-            className="border-outline-variant/50 hover:bg-surface-container text-on-surface"
-          >
-            Clear Filters
-          </Button>
-        </div>
-      )}
-
-      {/* Join Class Modal */}
-      <JoinClassModal 
-        isOpen={isJoinModalOpen} 
-        onClose={() => setIsJoinModalOpen(false)} 
-      />
     </div>
   );
 }
