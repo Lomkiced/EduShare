@@ -2,17 +2,9 @@
 
 import React from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useParams } from "next/navigation";
 import { useFacultySidebarStore } from "@/store/sidebarStore";
 import { logoutAction } from "@/lib/actions/auth";
-
-const navItems = [
-  { label: "Dashboard", icon: "dashboard", href: "/faculty/dashboard" },
-  { label: "My Sections", icon: "school", href: "/faculty/classes" },
-  { label: "Section Feed", icon: "forum", href: "/faculty/feed" },
-  { label: "Submissions", icon: "assignment", href: "/faculty/submissions" },
-  { label: "Analytics", icon: "analytics", href: "/faculty/analytics" },
-];
 
 const footerItems = [
   { label: "Settings", icon: "settings", href: "/faculty/settings" },
@@ -21,7 +13,18 @@ const footerItems = [
 export default function FacultySidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const params = useParams();
   const { isOpen, close } = useFacultySidebarStore();
+
+  const classId = (params?.classId as string) || "c1";
+
+  const navItems = [
+    { label: "Dashboard", icon: "dashboard", href: "/faculty/dashboard" },
+    { label: "My Sections", icon: "school", href: "/faculty/classes" },
+    { label: "Section Feed", icon: "forum", href: `/faculty/classes/${classId}/feed` },
+    { label: "Submissions", icon: "assignment", href: "/faculty/submissions" },
+    { label: "Analytics", icon: "analytics", href: "/faculty/analytics" },
+  ];
 
   const handleLogout = async () => {
     await logoutAction();
