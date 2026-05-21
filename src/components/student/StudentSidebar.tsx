@@ -2,18 +2,10 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useParams } from "next/navigation";
 import { useStudentSidebarStore } from "@/store/sidebarStore";
 import { logoutAction } from "@/lib/actions/auth";
 import JoinClassModal from "./JoinClassModal";
-
-const navItems = [
-  { label: "Dashboard", icon: "dashboard", href: "/student/dashboard" },
-  { label: "My Section", icon: "school", href: "/student/section" },
-  { label: "Section Feed", icon: "forum", href: "/student/feed" },
-  { label: "My Submissions", icon: "assignment", href: "/student/submissions" },
-  { label: "Notifications", icon: "notifications", href: "/student/notifications" },
-];
 
 const footerItems = [
   { label: "Profile", icon: "account_circle", href: "/student/profile" },
@@ -23,8 +15,19 @@ const footerItems = [
 export default function StudentSidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const params = useParams();
   const { isOpen, close } = useStudentSidebarStore();
   const [joinModalOpen, setJoinModalOpen] = useState(false);
+
+  const classId = (params?.classId as string) || "c1";
+
+  const navItems = [
+    { label: "Dashboard", icon: "dashboard", href: "/student/dashboard" },
+    { label: "My Section", icon: "school", href: "/student/classes" },
+    { label: "Section Feed", icon: "forum", href: `/student/classes/${classId}/feed` },
+    { label: "My Submissions", icon: "assignment", href: `/student/classes/${classId}/submissions` },
+    { label: "Notifications", icon: "notifications", href: "/student/notifications" },
+  ];
 
   const handleLogout = async () => {
     await logoutAction();
