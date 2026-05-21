@@ -198,7 +198,7 @@ export default function FacultyClassesPage() {
             No sections found
           </h3>
           <p className="text-on-surface-variant max-w-md mx-auto">
-            We couldn't find any sections matching your current search and filter criteria. Try adjusting your filters.
+            We couldn&apos;t find any sections matching your current search and filter criteria. Try adjusting your filters.
           </p>
         </div>
       )}

@@ -22,7 +22,7 @@ export default function FacultySidebar() {
     { label: "Dashboard", icon: "dashboard", href: "/faculty/dashboard" },
     { label: "My Sections", icon: "school", href: "/faculty/classes" },
     { label: "Section Feed", icon: "forum", href: `/faculty/classes/${classId}/feed` },
-    { label: "Submissions", icon: "assignment", href: "/faculty/submissions" },
+    { label: "Submissions", icon: "assignment", href: `/faculty/classes/${classId}/submissions` },
     { label: "Analytics", icon: "analytics", href: "/faculty/analytics" },
   ];
 
