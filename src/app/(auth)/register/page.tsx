@@ -7,9 +7,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
-import { AuthCard } from "@/components/auth/AuthCard";
-import { EduShareLogo } from "@/components/auth/EduShareLogo";
 import { FormInput } from "@/components/auth/FormInput";
+import { LoadingButton } from "@/components/shared/LoadingButton";
 import { registerSchema, RegisterFormValues } from "@/lib/validations/auth";
 import { registerAction } from "@/lib/actions/auth";
 
@@ -26,8 +25,7 @@ export default function RegisterPage() {
     defaultValues: {
       name: "",
       email: "",
-      department: "",
-      role: "STUDENT",
+      sectionCode: "",
       password: "",
       confirmPassword: "",
     },
@@ -39,7 +37,7 @@ export default function RegisterPage() {
       const result = await registerAction(data);
 
       if (result.success) {
-        toast.success("Account created! Please log in.");
+        toast.success("Registration successful! Please wait for your faculty to approve your account.", { duration: 6000 });
         router.push("/login");
       } else {
         toast.error(result.error || "Failed to create account.");
@@ -52,13 +50,23 @@ export default function RegisterPage() {
   };
 
   return (
-    <AuthCard>
-      <EduShareLogo
-        title="Create your account"
-        subtitle="Join EduShare and start learning."
-      />
+    <main className="w-full max-w-md animate-in fade-in duration-300">
+      <div className="bg-surface-container-lowest/80 backdrop-blur-2xl rounded-[2rem] shadow-[0_8px_40px_rgb(0,0,0,0.08)] border border-white/40 p-8 sm:p-12">
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-primary to-secondary shadow-lg mb-4 transform hover:rotate-12 transition-transform duration-300">
+            <span className="material-symbols-outlined text-white text-[28px]">
+              person_add
+            </span>
+          </div>
+          <h1 className="font-headline-lg text-on-surface tracking-tight">
+            Join EduShare
+          </h1>
+          <p className="font-body-md text-on-surface-variant mt-2">
+            Register for your class below.
+          </p>
+        </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-md">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         <FormInput
           id="name"
           label="Full Name"
@@ -82,49 +90,22 @@ export default function RegisterPage() {
         />
 
         <FormInput
-          id="department"
-          label="Department"
+          id="sectionCode"
+          label="Section Code"
           type="text"
-          placeholder="e.g. College of Engineering"
-          icon="apartment"
-          {...register("department")}
-          error={errors.department?.message}
+          placeholder="e.g. IT101-A"
+          icon="key"
+          {...register("sectionCode")}
+          error={errors.sectionCode?.message}
           disabled={isSubmitting}
         />
-
-        <div>
-          <p className="font-label-md text-on-surface mb-base">I am a...</p>
-          <div className="grid grid-cols-2 gap-sm">
-            <label className="cursor-pointer">
-              <input
-                type="radio"
-                value="STUDENT"
-                {...register("role")}
-                className="sr-only peer"
-                disabled={isSubmitting}
-              />
-              <div className="w-full text-center py-sm border border-outline-variant rounded bg-surface-container-lowest text-on-surface font-label-md peer-checked:bg-primary-container peer-checked:text-on-primary-container peer-checked:border-primary-container transition-colors">
-                Student
-              </div>
-            </label>
-            <label className="cursor-pointer">
-              <input
-                type="radio"
-                value="FACULTY"
-                {...register("role")}
-                className="sr-only peer"
-                disabled={isSubmitting}
-              />
-              <div className="w-full text-center py-sm border border-outline-variant rounded bg-surface-container-lowest text-on-surface font-label-md peer-checked:bg-primary-container peer-checked:text-on-primary-container peer-checked:border-primary-container transition-colors">
-                Faculty
-              </div>
-            </label>
-          </div>
-          {errors.role && (
-            <p className="mt-1 text-error font-label-sm">
-              {errors.role.message}
-            </p>
-          )}
+        
+        <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 mb-4 flex gap-3 items-start">
+          <span className="material-symbols-outlined text-primary mt-0.5">info</span>
+          <p className="text-sm text-on-surface-variant leading-relaxed">
+            You must enter a valid Section Code provided by your instructor to register. 
+            Once submitted, your account will be pending faculty approval before you can log in.
+          </p>
         </div>
 
         <FormInput
@@ -149,31 +130,31 @@ export default function RegisterPage() {
           disabled={isSubmitting}
         />
 
-        <button
+        <LoadingButton
           type="submit"
-          disabled={isSubmitting}
-          className="flex w-full items-center justify-center py-[8px] px-[20px] bg-secondary text-on-secondary rounded font-label-md shadow-level-1 hover:bg-secondary-container hover:text-on-secondary-container focus:ring-2 focus:ring-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-lg"
+          isLoading={isSubmitting}
+          loadingText="Creating account..."
+          variant="primary"
+          className="group w-full py-[14px] px-[20px] rounded-xl font-bold shadow-md hover:shadow-xl hover:bg-primary-container hover:text-on-primary-container focus:ring-4 focus:ring-primary/20 transition-all duration-300 mt-8 relative overflow-hidden"
         >
-          {isSubmitting ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Creating account...
-            </>
-          ) : (
-            "Create Account"
-          )}
-        </button>
+          <div className="absolute inset-0 w-full h-full bg-white/20 -translate-x-full group-hover:animate-shimmer"></div>
+          <span className="flex items-center gap-2 group-hover:scale-105 transition-transform">
+            Register
+            <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+          </span>
+        </LoadingButton>
       </form>
 
-      <div className="mt-md text-center font-body-sm text-on-surface-variant">
+      <div className="mt-10 text-center font-body-sm text-on-surface-variant border-t border-outline-variant/30 pt-8">
         Already have an account?{" "}
         <Link
           href="/login"
           className="font-label-md text-primary hover:text-primary-container transition-colors"
         >
-          Login
+          Sign in
         </Link>
       </div>
-    </AuthCard>
+    </div>
+  </main>
   );
 }

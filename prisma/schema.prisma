@@ -21,6 +21,12 @@ enum Role {
   ADMIN
 }
 
+enum UserStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 enum SubmissionStatus {
   PENDING
   SUBMITTED
@@ -41,6 +47,28 @@ enum ReportStatus {
   DISMISSED
 }
 
+// Phase 2 Enums
+
+enum LessonStatus {
+  LOCKED
+  UNLOCKED
+  COMPLETED
+}
+
+enum AssessmentType {
+  MULTIPLE_CHOICE
+  MULTIPLE_SELECT
+  MATCHING
+  TRUE_OR_FALSE
+  SHORT_ANSWER
+}
+
+enum AttemptStatus {
+  IN_PROGRESS
+  PASSED
+  FAILED
+}
+
 // ─── Models ───────────────────────────────────────────────────────────────────
 
 model User {
@@ -50,20 +78,24 @@ model User {
   name       String
   avatarUrl  String?
   department String?
-  role       Role     @default(STUDENT)
-  isActive   Boolean  @default(true)
-  createdAt  DateTime @default(now())
+  role       Role       @default(STUDENT)
+  isActive   Boolean    @default(true)
+  approvalStatus UserStatus @default(APPROVED)
+  createdAt  DateTime   @default(now())
   updatedAt  DateTime @updatedAt
 
   // Relations
-  taughtClasses   Class[]            @relation("FacultyClasses")
-  memberships     ClassMembership[]
-  posts           Post[]
-  comments        Comment[]
-  submissions     Submission[]
-  notifications   Notification[]
-  reportsFiled    Report[]           @relation("ReporterRelation")
-  reportsAgainst  Report[]           @relation("ReportedUserRelation")
+  taughtClasses      Class[]              @relation("FacultyClasses")
+  memberships        ClassMembership[]
+  posts              Post[]
+  comments           Comment[]
+  submissions        Submission[]
+  notifications      Notification[]
+  reportsFiled       Report[]             @relation("ReporterRelation")
+  reportsAgainst     Report[]             @relation("ReportedUserRelation")
+  // Phase 2
+  lessonProgress     LessonProgress[]
+  assessmentAttempts AssessmentAttempt[]
 
   @@map("users")
 }
@@ -83,6 +115,8 @@ model Class {
   faculty     User              @relation("FacultyClasses", fields: [facultyId], references: [id])
   members     ClassMembership[]
   posts       Post[]
+  // Phase 2
+  lessons     Lesson[]
 
   @@map("classes")
 }
@@ -206,4 +240,175 @@ model Notification {
   user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("notifications")
+}
+
+// ─── Phase 2: Lesson + Assessment Engine ─────────────────────────────────────
+
+/// A sequential video lesson belonging to a Class section.
+/// Students must watch >= 95% before the assessment unlocks.
+model Lesson {
+  id            String   @id @default(cuid())
+  classId       String
+  class         Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  title         String
+  description   String?
+  order         Int                      // 1-based sequence position
+  videoUrl      String                   // Supabase Storage public URL
+  videoKey      String                   // Supabase Storage object key (for deletion)
+  videoDuration Int                      // Total seconds — set after upload
+  thumbnailUrl  String?                  // Auto-generated or manually uploaded
+  isPublished   Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  assessment    Assessment?
+  progress      LessonProgress[]
+
+  @@unique([classId, order])             // No duplicate order within a class
+  @@map("lessons")
+}
+
+/// Tracks each student's watch progress per lesson.
+/// Heartbeat-based — updated every 5 seconds while watching.
+model LessonProgress {
+  id             String    @id @default(cuid())
+  lessonId       String
+  lesson         Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  studentId      String
+  student        User      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  watchedSeconds Int       @default(0)     // Cumulative seconds watched
+  highestSecond  Int       @default(0)     // Furthest point reached (anti-skip)
+  isCompleted    Boolean   @default(false) // true when highestSecond >= 95% of videoDuration
+  completedAt    DateTime?
+  lastHeartbeat  DateTime  @default(now())
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([lessonId, studentId])
+  @@map("lesson_progress")
+}
+
+/// One assessment per lesson. Unlocks only when lesson is completed.
+model Assessment {
+  id               String    @id @default(cuid())
+  lessonId         String    @unique
+  lesson           Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  title            String
+  instructions     String?
+  passingScore     Int       @default(75)  // Minimum percentage to pass
+  maxAttempts      Int       @default(3)   // 0 = unlimited retries
+  timeLimitMins    Int?                    // null = no time limit
+  shuffleQuestions Boolean   @default(false)
+  showResults      Boolean   @default(true) // Show score after submission
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // Relations
+  questions        Question[]
+  attempts         AssessmentAttempt[]
+
+  @@map("assessments")
+}
+
+/// A single question inside an Assessment.
+/// Supports 5 question types via AssessmentType enum.
+model Question {
+  id            String         @id @default(cuid())
+  assessmentId  String
+  assessment    Assessment     @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  type          AssessmentType
+  order         Int
+  questionText  String
+  points        Int            @default(1)
+  imageUrl      String?        // Optional image attachment per question
+  explanation   String?        // Shown to student after submission
+
+  // Relations
+  choices       QuestionChoice[]
+  matchPairs    MatchPair[]
+  answers       StudentAnswer[]
+
+  @@unique([assessmentId, order])
+  @@map("questions")
+}
+
+/// Answer choices for MULTIPLE_CHOICE, MULTIPLE_SELECT, TRUE_OR_FALSE.
+model QuestionChoice {
+  id         String   @id @default(cuid())
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  choiceText String
+  isCorrect  Boolean  @default(false)
+  order      Int
+
+  @@map("question_choices")
+}
+
+/// Left-right pairs for MATCHING type questions.
+model MatchPair {
+  id         String   @id @default(cuid())
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  leftItem   String   // The prompt (shown on left)
+  rightItem  String   // The correct answer (shown on right, shuffled)
+  order      Int
+
+  @@map("match_pairs")
+}
+
+/// One attempt record per student per assessment attempt number.
+model AssessmentAttempt {
+  id            String        @id @default(cuid())
+  assessmentId  String
+  assessment    Assessment    @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  studentId     String
+  student       User          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  attemptNumber Int           // 1, 2, 3... incremented per student
+  score         Float?        // Percentage: 0.0 - 100.0 (null until submitted)
+  totalPoints   Int?          // Max possible points for this attempt
+  earnedPoints  Float?        // Actual points earned
+  status        AttemptStatus @default(IN_PROGRESS)
+  startedAt     DateTime      @default(now())
+  submittedAt   DateTime?
+  timeLimitEnd  DateTime?     // startedAt + timeLimitMins (null if no limit)
+
+  // Relations
+  answers       StudentAnswer[]
+
+  @@unique([assessmentId, studentId, attemptNumber])
+  @@map("assessment_attempts")
+}
+
+/// One answer record per question per attempt.
+model StudentAnswer {
+  id         String            @id @default(cuid())
+  attemptId  String
+  attempt    AssessmentAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  questionId String
+  question   Question          @relation(fields: [questionId], references: [id])
+
+  // MULTIPLE_CHOICE / TRUE_OR_FALSE: one choiceId in array
+  // MULTIPLE_SELECT: multiple choiceIds in array
+  selectedChoiceIds String[] @default([])
+
+  // MATCHING: JSON array [{leftItem: string, selectedRightItem: string}]
+  matchAnswers      Json?
+
+  // SHORT_ANSWER: plain text
+  textAnswer        String?
+
+  // Grading
+  isCorrect    Boolean? // null = not yet graded (SHORT_ANSWER)
+  pointsEarned Float    @default(0)
+
+  @@unique([attemptId, questionId])
+  @@map("student_answers")
 }

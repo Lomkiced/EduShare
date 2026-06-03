@@ -6,9 +6,7 @@ import { usePathname, useRouter, useParams } from "next/navigation";
 import { useFacultySidebarStore } from "@/store/sidebarStore";
 import { logoutAction } from "@/lib/actions/auth";
 
-const footerItems = [
-  { label: "Settings", icon: "settings", href: "/faculty/settings" },
-];
+// footerItems removed to avoid redundancy with the header
 
 export default function FacultySidebar() {
   const pathname = usePathname();
@@ -16,23 +14,14 @@ export default function FacultySidebar() {
   const params = useParams();
   const { isOpen, close } = useFacultySidebarStore();
 
-  const classId = (params?.classId as string) || "c1";
-
   const navItems = [
     { label: "Dashboard", icon: "dashboard", href: "/faculty/dashboard" },
     { label: "My Sections", icon: "school", href: "/faculty/classes" },
-    { label: "Section Feed", icon: "forum", href: `/faculty/classes/${classId}/feed` },
-    { label: "Submissions", icon: "assignment", href: `/faculty/classes/${classId}/submissions` },
-    { label: "Analytics", icon: "analytics", href: "/faculty/analytics" },
   ];
 
   const handleLogout = async () => {
     await logoutAction();
     router.push("/login");
-  };
-
-  const handleCreateSection = () => {
-    console.log("Open Create Section Modal");
   };
 
   const SidebarContent = (
@@ -56,14 +45,6 @@ export default function FacultySidebar() {
           </p>
         </div>
       </div>
-
-      <button
-        onClick={handleCreateSection}
-        className="w-full bg-secondary text-on-secondary rounded-lg py-2 px-6 font-label-md text-label-md hover:bg-opacity-90 transition-colors flex items-center justify-center gap-2 shadow-sm mb-4"
-      >
-        <span className="material-symbols-outlined text-[18px]">add</span>
-        Create New Section
-      </button>
 
       {/* Main Navigation */}
       <div className="flex-1 flex flex-col gap-1">
@@ -94,29 +75,6 @@ export default function FacultySidebar() {
 
       {/* Footer Navigation */}
       <div className="mt-auto border-t border-slate-200 pt-4 flex flex-col gap-1">
-        {footerItems.map((item) => {
-          const isActive = pathname === item.href;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={close}
-              className={`flex items-center gap-2 px-3 py-2 transition-all duration-200 ${
-                isActive
-                  ? "bg-white text-blue-900 font-bold border-r-4 border-blue-900 rounded-l-lg hover:bg-slate-100 focus:ring-2 focus:ring-blue-500/20"
-                  : "text-slate-500 hover:text-blue-900 rounded-lg hover:bg-slate-100 focus:ring-2 focus:ring-blue-500/20"
-              }`}
-            >
-              <span
-                className="material-symbols-outlined"
-                style={{ fontVariationSettings: "'FILL' 0" }}
-              >
-                {item.icon}
-              </span>
-              {item.label}
-            </Link>
-          );
-        })}
         <button
           onClick={handleLogout}
           className="flex items-center gap-2 px-3 py-2 text-slate-500 hover:text-error hover:bg-error-container/20 rounded-lg transition-all duration-200 focus:ring-2 focus:ring-error/20 w-full text-left"

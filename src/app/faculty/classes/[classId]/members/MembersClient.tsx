@@ -1,0 +1,190 @@
+"use client";
+
+import { useState } from "react";
+import { toast } from "sonner";
+import { approveStudent, rejectStudent, removeStudent } from "@/lib/actions/faculty";
+import { LoadingButton } from "@/components/shared/LoadingButton";
+
+type Student = {
+  id: string;
+  name: string;
+  email: string;
+  avatarUrl: string | null;
+  approvalStatus: "PENDING" | "APPROVED" | "REJECTED";
+};
+
+export function MembersClient({
+  classId,
+  pendingStudents,
+  approvedStudents,
+}: {
+  classId: string;
+  pendingStudents: Student[];
+  approvedStudents: Student[];
+}) {
+  const [isProcessing, setIsProcessing] = useState<string | null>(null);
+
+  const handleApprove = async (userId: string) => {
+    setIsProcessing(userId + "-approve");
+    const result = await approveStudent(userId, classId);
+    if (result.success) {
+      toast.success("Student approved!");
+    } else {
+      toast.error(result.error);
+    }
+    setIsProcessing(null);
+  };
+
+  const handleReject = async (userId: string) => {
+    if (!confirm("Are you sure you want to reject this student?")) return;
+    setIsProcessing(userId + "-reject");
+    const result = await rejectStudent(userId, classId);
+    if (result.success) {
+      toast.success("Student rejected.");
+    } else {
+      toast.error(result.error);
+    }
+    setIsProcessing(null);
+  };
+
+  const handleRemove = async (userId: string) => {
+    if (!confirm("Are you sure you want to remove this student? This action cannot be undone.")) return;
+    setIsProcessing(userId + "-remove");
+    const result = await removeStudent(userId, classId);
+    if (result.success) {
+      toast.success("Student removed successfully.");
+    } else {
+      toast.error(result.error);
+    }
+    setIsProcessing(null);
+  };
+
+  return (
+    <div className="space-y-xl animate-in fade-in duration-300">
+      {/* Pending Approvals */}
+      <section>
+        <h2 className="font-headline-md text-on-surface mb-md flex items-center gap-2">
+          <span className="material-symbols-outlined text-secondary">pending_actions</span>
+          Pending Approvals
+          <span className="bg-secondary/10 text-secondary text-sm py-0.5 px-2 rounded-full ml-2">
+            {pendingStudents.length}
+          </span>
+        </h2>
+        {pendingStudents.length === 0 ? (
+          <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-8 text-center">
+            <p className="text-on-surface-variant font-body-md">No pending requests at this time.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-md">
+            {pendingStudents.map((student) => (
+              <div
+                key={student.id}
+                className="bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-md shadow-sm flex flex-col"
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center font-bold text-lg">
+                    {student.avatarUrl ? (
+                      <img src={student.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
+                    ) : (
+                      student.name.charAt(0).toUpperCase()
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="font-label-md text-on-surface">{student.name}</h3>
+                    <p className="text-sm text-on-surface-variant">{student.email}</p>
+                  </div>
+                </div>
+                <div className="mt-auto flex gap-2 pt-4 border-t border-outline-variant/20">
+                  <LoadingButton
+                    variant="primary"
+                    isLoading={isProcessing === student.id + "-approve"}
+                    disabled={isProcessing !== null}
+                    onClick={() => handleApprove(student.id)}
+                    className="flex-1"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">check</span>
+                    Approve
+                  </LoadingButton>
+                  <LoadingButton
+                    variant="outline"
+                    isLoading={isProcessing === student.id + "-reject"}
+                    disabled={isProcessing !== null}
+                    onClick={() => handleReject(student.id)}
+                    className="flex-1 text-error border-error/50 hover:bg-error/10 hover:text-error"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">close</span>
+                    Reject
+                  </LoadingButton>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Approved Members */}
+      <section>
+        <h2 className="font-headline-md text-on-surface mb-md flex items-center gap-2">
+          <span className="material-symbols-outlined text-primary">group</span>
+          Enrolled Students
+          <span className="bg-primary/10 text-primary text-sm py-0.5 px-2 rounded-full ml-2">
+            {approvedStudents.length}
+          </span>
+        </h2>
+        {approvedStudents.length === 0 ? (
+          <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-8 text-center">
+            <p className="text-on-surface-variant font-body-md">No students have enrolled yet.</p>
+          </div>
+        ) : (
+          <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-xl overflow-hidden">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-surface-container-low border-b border-outline-variant/30 text-on-surface-variant font-label-md">
+                <tr>
+                  <th className="px-6 py-4">Student</th>
+                  <th className="px-6 py-4">Email</th>
+                  <th className="px-6 py-4">Status</th>
+                  <th className="px-6 py-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-outline-variant/20">
+                {approvedStudents.map((student) => (
+                  <tr key={student.id} className="hover:bg-surface-container-lowest/50 transition-colors group">
+                    <td className="px-6 py-4 flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold text-xs">
+                        {student.avatarUrl ? (
+                          <img src={student.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
+                        ) : (
+                          student.name.charAt(0).toUpperCase()
+                        )}
+                      </div>
+                      <span className="font-medium text-on-surface">{student.name}</span>
+                    </td>
+                    <td className="px-6 py-4 text-on-surface-variant">{student.email}</td>
+                    <td className="px-6 py-4">
+                      <span className="inline-flex items-center gap-1.5 py-1 px-2.5 rounded-md text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                        Approved
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <LoadingButton
+                        variant="danger"
+                        isLoading={isProcessing === student.id + "-remove"}
+                        disabled={isProcessing !== null}
+                        onClick={() => handleRemove(student.id)}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity py-1 px-3 text-xs h-8 ml-auto"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">person_remove</span>
+                        Remove
+                      </LoadingButton>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}

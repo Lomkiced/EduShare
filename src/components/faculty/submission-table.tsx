@@ -2,25 +2,17 @@
 
 import React from "react";
 import { Badge } from "@/components/ui/badge";
-
-type SubmissionStatus = "PENDING" | "SUBMITTED" | "REVIEWED";
-
-export type MockSubmission = {
-  id: string;
-  studentName: string;
-  avatarInitial: string;
-  assignmentTitle: string;
-  fileName: string | null;
-  submissionDate: Date | null;
-  status: SubmissionStatus;
-};
+import type { Submission } from "@/types";
+import { useReviewSubmission } from "@/hooks/use-submissions";
 
 interface SubmissionTableProps {
-  submissions: MockSubmission[];
+  submissions: Submission[];
 }
 
 export function SubmissionTable({ submissions }: SubmissionTableProps) {
-  const getStatusColor = (status: SubmissionStatus) => {
+  const { mutate: reviewSubmission, isPending } = useReviewSubmission();
+
+  const getStatusColor = (status: Submission["status"]) => {
     switch (status) {
       case "SUBMITTED":
         return "bg-primary/10 text-primary hover:bg-primary/20";
@@ -32,13 +24,15 @@ export function SubmissionTable({ submissions }: SubmissionTableProps) {
     }
   };
 
-  const getStatusIcon = (status: SubmissionStatus) => {
+  const getStatusIcon = (status: Submission["status"]) => {
     switch (status) {
       case "SUBMITTED": return "check_circle";
       case "REVIEWED": return "verified";
       case "PENDING": return "pending_actions";
     }
   };
+
+  const getInitials = (name: string) => name.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase();
 
   if (submissions.length === 0) {
     return (
@@ -59,7 +53,6 @@ export function SubmissionTable({ submissions }: SubmissionTableProps) {
           <thead className="bg-surface-container/50 text-on-surface-variant font-medium border-b border-outline-variant/30">
             <tr>
               <th className="px-6 py-4">Student</th>
-              <th className="px-6 py-4">Assignment</th>
               <th className="px-6 py-4">File</th>
               <th className="px-6 py-4">Date Submitted</th>
               <th className="px-6 py-4">Status</th>
@@ -71,26 +64,32 @@ export function SubmissionTable({ submissions }: SubmissionTableProps) {
               <tr key={sub.id} className="hover:bg-surface-container/20 transition-colors">
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-full bg-secondary/10 flex items-center justify-center text-secondary text-xs font-semibold shrink-0">
-                      {sub.avatarInitial}
+                    <div className="h-8 w-8 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center text-xs font-semibold shrink-0">
+                      {sub.student?.avatarUrl ? (
+                        <img src={sub.student.avatarUrl} alt={sub.student.name} className="w-full h-full rounded-full object-cover" />
+                      ) : (
+                        getInitials(sub.student?.name || "Student")
+                      )}
                     </div>
-                    <span className="font-medium text-on-surface">{sub.studentName}</span>
+                    <div>
+                      <span className="font-medium text-on-surface block">{sub.student?.name}</span>
+                      <span className="text-xs text-on-surface-variant">{sub.student?.email}</span>
+                    </div>
                   </div>
                 </td>
-                <td className="px-6 py-4 text-on-surface">{sub.assignmentTitle}</td>
                 <td className="px-6 py-4">
-                  {sub.fileName ? (
-                    <div className="flex items-center gap-2 text-primary hover:underline cursor-pointer w-fit">
+                  {sub.fileUrl ? (
+                    <a href={sub.fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-primary hover:underline cursor-pointer w-fit">
                       <span className="material-symbols-outlined text-[16px]">description</span>
                       <span className="truncate max-w-[150px]">{sub.fileName}</span>
-                    </div>
+                    </a>
                   ) : (
                     <span className="text-on-surface-variant/60 italic">No file attached</span>
                   )}
                 </td>
                 <td className="px-6 py-4 text-on-surface-variant">
-                  {sub.submissionDate 
-                    ? new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(sub.submissionDate)
+                  {sub.submittedAt 
+                    ? new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(sub.submittedAt))
                     : "—"
                   }
                 </td>
@@ -101,9 +100,18 @@ export function SubmissionTable({ submissions }: SubmissionTableProps) {
                   </Badge>
                 </td>
                 <td className="px-6 py-4 text-right">
-                  <button className="text-primary hover:text-primary/80 font-medium text-sm transition-colors">
-                    {sub.status === "REVIEWED" ? "Edit Grade" : "Review"}
-                  </button>
+                  {sub.status === "SUBMITTED" && (
+                    <button
+                      onClick={() => reviewSubmission({ submissionId: sub.id, postId: sub.postId })}
+                      disabled={isPending}
+                      className="text-primary hover:text-primary/80 font-medium text-sm transition-colors disabled:opacity-50"
+                    >
+                      Mark Reviewed
+                    </button>
+                  )}
+                  {sub.status === "REVIEWED" && (
+                    <span className="text-[#16a34a] font-medium text-sm">Reviewed</span>
+                  )}
                 </td>
               </tr>
             ))}

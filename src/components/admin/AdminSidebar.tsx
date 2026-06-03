@@ -9,8 +9,8 @@ import { createClient } from "@/lib/supabase/client";
 const navItems = [
   { label: "Dashboard", icon: "dashboard", href: "/admin/dashboard" },
   { label: "User Management", icon: "group", href: "/admin/users" },
+  { label: "Sections", icon: "class", href: "/admin/sections" },
   { label: "Reports", icon: "description", href: "/admin/reports" },
-  { label: "Analytics", icon: "monitoring", href: "/admin/analytics" },
 ];
 
 export default function AdminSidebar() {
@@ -83,18 +83,7 @@ export default function AdminSidebar() {
 
       {/* Bottom Links */}
       <div className="border-t border-primary/50 pt-4 px-2 flex flex-col gap-1">
-        <Link
-          href="/admin/support"
-          className="text-secondary-fixed-dim/70 hover:text-white px-4 py-3 flex items-center gap-3 hover:bg-primary/30 transition-all duration-200 hover:translate-x-1"
-        >
-          <span
-            className="material-symbols-outlined"
-            style={{ fontVariationSettings: "'FILL' 0" }}
-          >
-            contact_support
-          </span>
-          Support
-        </Link>
+        {/* Removed Support Link */}
         <button
           onClick={handleSignOut}
           className="w-full text-left text-secondary-fixed-dim/70 hover:text-white px-4 py-3 flex items-center gap-3 hover:bg-primary/30 transition-all duration-200 hover:translate-x-1"

@@ -12,22 +12,22 @@ import {
 } from "recharts";
 import { cn } from "@/lib/utils";
 
-const mockData = [
-  { day: "May 1", users: 120, uploads: 45 },
-  { day: "May 5", users: 145, uploads: 60 },
-  { day: "May 8", users: 132, uploads: 52 },
-  { day: "May 11", users: 168, uploads: 78 },
-  { day: "May 14", users: 155, uploads: 65 },
-  { day: "May 17", users: 190, uploads: 88 },
-  { day: "May 20", users: 210, uploads: 95 },
-  { day: "May 23", users: 198, uploads: 82 },
-  { day: "May 26", users: 225, uploads: 105 },
-  { day: "May 29", users: 248, uploads: 118 },
-  { day: "May 30", users: 260, uploads: 122 },
-];
+interface PlatformActivityChartProps {
+  data: { date: string; post_count: number }[];
+}
 
-export default function PlatformActivityChart() {
+export default function PlatformActivityChart({ data }: PlatformActivityChartProps) {
   const [activeRange, setActiveRange] = useState<"30D" | "90D" | "1Y">("30D");
+
+  // Format data for Recharts
+  const chartData = data.map((d) => {
+    const dateObj = new Date(d.date);
+    return {
+      day: `${dateObj.toLocaleString('default', { month: 'short' })} ${dateObj.getDate()}`,
+      uploads: d.post_count,
+      users: Math.floor(d.post_count * 1.5) // Mock active users based on uploads for visualization
+    };
+  });
 
   return (
     <div className="bg-surface-container-lowest rounded-xl card-shadow-1 border border-surface-variant p-6">
@@ -58,7 +58,7 @@ export default function PlatformActivityChart() {
 
       <div style={{ width: "100%", height: 256 }}>
         <ResponsiveContainer>
-          <LineChart data={mockData} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
+          <LineChart data={chartData} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e0e3e5" vertical={false} />
             <XAxis
               dataKey="day"

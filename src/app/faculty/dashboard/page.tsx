@@ -1,78 +1,170 @@
 import React from "react";
-import StatCard from "@/components/shared/StatCard";
-import MySectionsSection from "@/components/faculty/MySectionsSection";
+import { redirect } from "next/navigation";
+import { getAuthSession } from "@/lib/auth-session";
+import prisma from "@/lib/prisma";
+import DashboardAnalytics from "@/components/faculty/DashboardAnalytics";
 
-export default function FacultyDashboardPage() {
+export const dynamic = "force-dynamic";
+
+export default async function FacultyDashboardPage() {
+  const session = await getAuthSession();
+  if (!session || session.profile.role !== "FACULTY") redirect("/login");
+  const facultyId = session.profile.id;
+
+  // Fetch real data for faculty dashboard
+  const [sections, totalStudents, activePosts, pendingSubmissions, submissionsByStatus, sectionsAnalytics, recentSubs] = await Promise.all([
+    // 1. Fetch faculty's sections count
+    prisma.class.count({
+      where: { facultyId, isArchived: false },
+    }),
+    // 2. Count distinct students across all their sections
+    prisma.classMembership.count({
+      where: { class: { facultyId } },
+    }),
+    // 3. Count total active posts in their sections
+    prisma.post.count({
+      where: { class: { facultyId } },
+    }),
+    // 4. Count pending submissions across their classes
+    prisma.submission.count({
+      where: {
+        status: "SUBMITTED",
+        post: { class: { facultyId } },
+      },
+    }),
+    // 5. Submissions by status for Pie Chart
+    prisma.submission.groupBy({
+      by: ['status'],
+      where: { post: { class: { facultyId } } },
+      _count: { id: true },
+    }),
+    // 6. Sections engagement for Bar Chart
+    prisma.class.findMany({
+      where: { facultyId, isArchived: false },
+      select: {
+        name: true,
+        _count: { select: { members: true, posts: true } },
+      },
+      take: 5,
+    }),
+    // 7. Recent submissions for Area Chart
+    prisma.submission.findMany({
+      where: { post: { class: { facultyId } } },
+      select: { submittedAt: true },
+      orderBy: { submittedAt: 'desc' },
+      take: 100,
+    })
+  ]);
+
+  // Format submissions by status
+  const submissionsStatus = submissionsByStatus.map(s => ({
+    status: s.status,
+    count: s._count.id,
+  }));
+
+  // Format sections engagement
+  const sectionsEngagement = sectionsAnalytics.map(s => ({
+    name: s.name.length > 15 ? s.name.substring(0, 15) + "..." : s.name,
+    studentCount: s._count.members,
+    postCount: s._count.posts,
+  }));
+
+  // Format recent activity (last 6 months)
+  const monthsMap = new Map<string, number>();
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date();
+    d.setMonth(d.getMonth() - i);
+    const monthStr = d.toLocaleString('default', { month: 'short' });
+    monthsMap.set(monthStr, 0);
+  }
+
+  recentSubs.forEach(sub => {
+    const monthStr = sub.submittedAt.toLocaleString('default', { month: 'short' });
+    if (monthsMap.has(monthStr)) {
+      monthsMap.set(monthStr, monthsMap.get(monthStr)! + 1);
+    }
+  });
+
+  const recentActivity = Array.from(monthsMap.entries()).map(([month, submissions]) => ({
+    month,
+    submissions,
+  }));
+
   return (
     <>
-      {/* Desktop Page Header */}
-      <div className="hidden md:flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div>
-          <h2 className="font-headline-xl text-headline-xl text-primary tracking-tight">
-            Introduction to Computing
-          </h2>
-          <p className="font-body-lg text-body-lg text-on-surface-variant mt-2 max-w-2xl">
-            Manage your sections, monitor student engagement, and 
-            review submissions for Introduction to Computing.
-          </p>
-        </div>
+      {/* Premium Hero Banner */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/10 via-surface to-secondary-container/20 border border-outline-variant/30 p-8 md:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] mb-8">
+        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-72 h-72 bg-primary/20 blur-3xl rounded-full pointer-events-none mix-blend-multiply"></div>
+        <div className="absolute bottom-0 right-40 -mb-20 w-64 h-64 bg-tertiary/20 blur-3xl rounded-full pointer-events-none mix-blend-multiply"></div>
         
-        {/* Decorative banner */}
-        <div className="hidden lg:flex w-full md:w-auto h-[120px] rounded-xl overflow-hidden shadow-sm flex-shrink-0 opacity-90 border border-outline-variant/30 bg-surface-variant">
-          <svg
-            width="400"
-            height="120"
-            viewBox="0 0 400 120"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            className="w-full h-full object-cover"
-          >
-            <rect width="400" height="120" fill="#fefcff" />
-            <circle cx="350" cy="20" r="60" fill="#dce1ff" opacity="0.6" />
-            <circle cx="50" cy="100" r="40" fill="#d8e2ff" opacity="0.6" />
-            <path
-              d="M150 120L250 0H300L200 120H150Z"
-              fill="#00236f"
-              opacity="0.05"
-            />
-            <path
-              d="M180 120L280 0H330L230 120H180Z"
-              fill="#0058be"
-              opacity="0.05"
-            />
-          </svg>
+        <div className="relative z-10">
+          <h2 className="text-3xl md:text-4xl font-black text-on-surface tracking-tight mb-3">
+            Welcome back, <span className="text-primary bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">{session.profile.name}</span>
+          </h2>
+          <p className="text-lg text-on-surface-variant max-w-2xl font-medium">
+            Here's what's happening in your classes today. You have <strong className="text-primary">{pendingSubmissions}</strong> pending submissions to review.
+          </p>
         </div>
       </div>
 
-      {/* Quick Stats Strip */}
+      {/* Premium Quick Stats Strip */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard
-          label="Total Students"
-          value="142"
-          icon="groups"
-          iconBg="bg-primary-fixed"
-          iconColor="text-on-primary-fixed"
-        />
-        <StatCard
-          label="Active Posts"
-          value="48"
-          icon="forum"
-          iconBg="bg-secondary-fixed"
-          iconColor="text-on-secondary-fixed"
-        />
-        <StatCard
-          label="Pending Submissions"
-          value="24"
-          icon="inventory_2"
-          iconBg="bg-tertiary-fixed"
-          iconColor="text-on-tertiary-fixed"
-          isAlert={true}
-          alertLabel="Action Needed"
-        />
+        {/* Stat Card 1 */}
+        <div className="group bg-surface-container-lowest rounded-3xl p-6 shadow-sm border border-outline-variant/20 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden cursor-default">
+          <div className="absolute -right-6 -top-6 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors"></div>
+          <div className="flex items-center gap-5">
+            <div className="w-14 h-14 rounded-2xl bg-primary-container text-on-primary-container flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
+              <span className="material-symbols-outlined text-[28px]" style={{ fontVariationSettings: "'FILL' 1" }}>groups</span>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-on-surface-variant uppercase tracking-widest mb-1">Total Students</p>
+              <h3 className="text-4xl font-black text-primary leading-none tracking-tight">{totalStudents.toLocaleString()}</h3>
+            </div>
+          </div>
+        </div>
+
+        {/* Stat Card 2 */}
+        <div className="group bg-surface-container-lowest rounded-3xl p-6 shadow-sm border border-outline-variant/20 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden cursor-default">
+          <div className="absolute -right-6 -top-6 w-24 h-24 bg-secondary/5 rounded-full blur-2xl group-hover:bg-secondary/10 transition-colors"></div>
+          <div className="flex items-center gap-5">
+            <div className="w-14 h-14 rounded-2xl bg-secondary-container text-on-secondary-container flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
+              <span className="material-symbols-outlined text-[28px]" style={{ fontVariationSettings: "'FILL' 1" }}>forum</span>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-on-surface-variant uppercase tracking-widest mb-1">Active Posts</p>
+              <h3 className="text-4xl font-black text-secondary leading-none tracking-tight">{activePosts.toLocaleString()}</h3>
+            </div>
+          </div>
+        </div>
+
+        {/* Stat Card 3 */}
+        <div className={`group bg-surface-container-lowest rounded-3xl p-6 shadow-sm border border-outline-variant/20 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden cursor-default ${pendingSubmissions > 0 ? 'ring-2 ring-error/20' : ''}`}>
+          <div className={`absolute -right-6 -top-6 w-24 h-24 ${pendingSubmissions > 0 ? 'bg-error/5 group-hover:bg-error/10' : 'bg-tertiary/5 group-hover:bg-tertiary/10'} rounded-full blur-2xl transition-colors`}></div>
+          <div className="flex items-center gap-5">
+            <div className={`w-14 h-14 rounded-2xl ${pendingSubmissions > 0 ? 'bg-error-container text-on-error-container' : 'bg-tertiary-container text-on-tertiary-container'} flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300`}>
+              <span className="material-symbols-outlined text-[28px]" style={{ fontVariationSettings: "'FILL' 1" }}>inventory_2</span>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-on-surface-variant uppercase tracking-widest mb-1">Pending Reviews</p>
+              <div className="flex items-end gap-3">
+                <h3 className={`text-4xl font-black leading-none tracking-tight ${pendingSubmissions > 0 ? 'text-error' : 'text-tertiary'}`}>{pendingSubmissions.toLocaleString()}</h3>
+                {pendingSubmissions > 0 && (
+                  <span className="mb-1 px-2 py-0.5 rounded-full bg-error-container text-error text-xs font-bold animate-pulse">
+                    Action Needed
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
-      {/* My Sections */}
-      <MySectionsSection />
+      {/* Advanced Analytics Dashboard */}
+      <DashboardAnalytics 
+        submissionsStatus={submissionsStatus}
+        sectionsEngagement={sectionsEngagement}
+        recentActivity={recentActivity}
+      />
     </>
   );
 }

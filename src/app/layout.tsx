@@ -12,6 +12,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/shared/providers";
 import { Toaster } from "sonner";
+import { NavigationProgress } from "@/components/shared/NavigationProgress";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -36,6 +37,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
+        <NavigationProgress />
         {/* TanStack Query + other client-side providers */}
         <Providers>
           {children}

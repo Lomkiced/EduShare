@@ -1,45 +1,37 @@
-/**
- * hooks/use-notifications.ts
- *
- * Manages real-time notifications via Supabase Realtime.
- * Subscribes to the notifications table filtered by the current user's id.
- */
-
 "use client";
 
-import { useEffect, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { apiClient } from "@/lib/api-client";
 import { createClient } from "@/lib/supabase/client";
-import { useUser } from "@/hooks/use-user";
-import type { Notification } from "@/types";
+import type { NotificationsResponse } from "@/types";
 
-export function useNotifications() {
-  const { user } = useUser();
-  const queryClient = useQueryClient();
-  const [unreadCount, setUnreadCount] = useState(0);
+export function useNotifications(unreadOnly = false) {
+  const qc = useQueryClient();
 
+  const query = useQuery({
+    queryKey: ["notifications", { unreadOnly }],
+    queryFn:  () =>
+      apiClient.get<NotificationsResponse>(
+        `/api/notifications${unreadOnly ? "?unreadOnly=true" : ""}`
+      ),
+    refetchInterval: 60_000, // Poll every 60s as fallback
+  });
+
+  // REAL-TIME: Subscribe to Supabase Realtime for instant updates
   useEffect(() => {
-    if (!user) return;
-
     const supabase = createClient();
-
-    // Subscribe to new notifications for this user
     const channel = supabase
-      .channel("notifications")
+      .channel("notifications-realtime")
       .on(
         "postgres_changes",
         {
-          event: "INSERT",
+          event:  "INSERT",
           schema: "public",
-          table: "notifications",
-          filter: `userId=eq.${user.id}`,
+          table:  "notifications",
         },
-        (payload) => {
-          // Invalidate notifications query to trigger a refetch
-          queryClient.invalidateQueries({ queryKey: ["notifications", user.id] });
-
-          // Update unread count optimistically
-          setUnreadCount((prev) => prev + 1);
+        () => {
+          qc.invalidateQueries({ queryKey: ["notifications"] });
         }
       )
       .subscribe();
@@ -47,7 +39,46 @@ export function useNotifications() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, queryClient]);
+  }, [qc]);
 
-  return { unreadCount, setUnreadCount };
+  return query;
+}
+
+export function useMarkNotificationsRead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (notificationIds?: string[]) =>
+      apiClient.patch<{ updatedCount: number }>(
+        "/api/notifications/read",
+        notificationIds ? { notificationIds } : {}
+      ),
+    onMutate: async (notificationIds) => {
+      await qc.cancelQueries({ queryKey: ["notifications"] })
+      const previous = qc.getQueryData(["notifications"])
+      
+      qc.setQueryData<any>(
+        ["notifications", { unreadOnly: false }],
+        (old: any) => {
+          if (!old) return old
+          return {
+            ...old,
+            unreadCount: 0,
+            notifications: old.notifications.map((n: any) => ({
+              ...n,
+              isRead: notificationIds
+                ? notificationIds.includes(n.id) ? true : n.isRead
+                : true,
+            })),
+          }
+        }
+      )
+      return { previous }
+    },
+    onError: (_, __, ctx) => {
+      qc.setQueryData(["notifications"], ctx?.previous)
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["notifications"] })
+    },
+  });
 }

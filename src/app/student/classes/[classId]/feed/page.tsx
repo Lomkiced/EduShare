@@ -1,17 +1,162 @@
-import type { Metadata } from "next";
+"use client";
 
-export const metadata: Metadata = { title: "Class Feed" };
+import React, { useState } from "react";
+import PostCard from "@/components/shared/PostCard";
+import { Card } from "@/components/ui/card";
+import { useClass } from "@/hooks/use-class";
+import { usePosts, useCreatePost } from "@/hooks/use-posts";
+import { useParams } from "next/navigation";
 
-export default function StudentClassFeedPage({
-  params,
-}: {
-  params: { classId: string };
-}) {
+// --- Helpers ---
+const formatDate = (date: string | Date) => {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(date));
+};
+
+function StudentPostComposer({ classId }: { classId: string }) {
+  const [content, setContent] = useState("");
+  const { mutate: createPost, isPending } = useCreatePost();
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!content.trim()) return;
+
+    createPost(
+      { classId, content, isSubmissionPost: false, submissionDeadline: null },
+      { onSuccess: () => setContent("") }
+    );
+  };
+
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-bold mb-2">Class Feed</h1>
-      <p className="text-muted-foreground text-sm mb-4">Class ID: {params.classId}</p>
-      <p className="text-muted-foreground">Posts and resources for this class — Coming Soon</p>
+    <div className="bg-surface-container-lowest rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.04)] border border-outline-variant/30 overflow-hidden mb-6">
+      <form onSubmit={handleSubmit} className="p-4 sm:p-6 flex flex-col gap-4">
+        <textarea
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          placeholder="Share something with your class..."
+          rows={3}
+          className="w-full bg-transparent resize-none outline-none font-body-lg text-on-surface placeholder:text-on-surface-variant/70 transition-all"
+        />
+        <div className="flex justify-end">
+          <button
+            type="submit"
+            disabled={!content.trim() || isPending}
+            className="px-5 py-2 font-label-md bg-primary text-on-primary rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-2 shadow-sm"
+          >
+            {isPending ? "Posting..." : "Post"}
+            {!isPending && <span className="material-symbols-outlined text-[18px]">send</span>}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+export default function StudentClassFeedPage() {
+  const params = useParams();
+  const classId = params.classId as string;
+
+  const { data: classData, isLoading: isLoadingClass } = useClass(classId);
+  const { data: posts = [], isLoading: isLoadingPosts } = usePosts(classId);
+
+  const upcomingDeadlines = posts
+    .filter((p) => p.isSubmissionPost && p.submissionDeadline && new Date(p.submissionDeadline) > new Date())
+    .sort((a, b) => new Date(a.submissionDeadline!).getTime() - new Date(b.submissionDeadline!).getTime());
+
+  if (isLoadingClass || isLoadingPosts) {
+    return <div className="p-12 text-center text-on-surface-variant font-body-lg">Loading class feed...</div>;
+  }
+
+  if (!classData) {
+    return <div className="p-12 text-center text-error font-body-lg">Class not found.</div>;
+  }
+
+  return (
+    <div className="p-6 md:p-8 max-w-[1600px] mx-auto w-full">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-on-surface tracking-tight mb-2">{classData.name} Feed</h1>
+        <p className="text-on-surface-variant text-lg">Stay updated with class announcements and discussions.</p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Main Feed Column */}
+        <div className="col-span-1 lg:col-span-8 space-y-6">
+          <StudentPostComposer classId={classId} />
+
+          {/* Posts Feed */}
+          <div className="space-y-6 mt-6">
+            {posts.length > 0 ? (
+              posts.map((post) => (
+                <PostCard key={post.id} post={post} isFacultyView={false} />
+              ))
+            ) : (
+              <div className="text-center py-12 text-on-surface-variant bg-surface-container-lowest rounded-xl border border-outline-variant/30">
+                No posts yet. Be the first to start the conversation!
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right Utility Column */}
+        <div className="col-span-1 lg:col-span-4 hidden lg:block">
+          <div className="sticky top-24 space-y-6">
+            {/* Class Details */}
+            <Card className="border-outline-variant/30 shadow-sm overflow-hidden bg-surface-container-lowest">
+              <div className="bg-primary/5 p-4 border-b border-outline-variant/20 flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary text-[20px]">info</span>
+                <h3 className="font-semibold text-primary">Class Details</h3>
+              </div>
+              <div className="p-5 space-y-4">
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-on-surface-variant uppercase tracking-wider font-semibold">Class Code</span>
+                  <span className="text-sm font-medium text-on-surface bg-surface-container w-fit px-2 py-1 rounded border border-outline-variant/30">{classData.classCode}</span>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-on-surface-variant uppercase tracking-wider font-semibold">Subject</span>
+                  <span className="text-sm font-medium text-on-surface flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[16px] text-on-surface-variant">subject</span>
+                    {classData.subject}
+                  </span>
+                </div>
+              </div>
+            </Card>
+
+            {/* Upcoming Deadlines */}
+            <Card className="border-outline-variant/30 shadow-sm overflow-hidden bg-surface-container-lowest">
+              <div className="bg-tertiary/5 p-4 border-b border-outline-variant/20 flex items-center gap-2">
+                <span className="material-symbols-outlined text-tertiary text-[20px]">upcoming</span>
+                <h3 className="font-semibold text-tertiary">Upcoming Deadlines</h3>
+              </div>
+              <div className="p-0">
+                {upcomingDeadlines.length > 0 ? (
+                  <div className="flex flex-col divide-y divide-outline-variant/20">
+                    {upcomingDeadlines.map((assignment) => (
+                      <div key={assignment.id} className="p-4 hover:bg-surface-container transition-colors cursor-pointer group">
+                        <div className="text-sm font-medium text-on-surface line-clamp-2 group-hover:text-tertiary transition-colors mb-2 leading-relaxed">
+                          {assignment.content.split(".")[0]}
+                        </div>
+                        <div className="text-xs text-tertiary font-semibold flex items-center gap-1.5 bg-tertiary/10 w-fit px-2 py-1 rounded-md">
+                          <span className="material-symbols-outlined text-[14px]">timer</span>
+                          {formatDate(assignment.submissionDeadline!)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-6 text-center flex flex-col items-center gap-2">
+                    <span className="material-symbols-outlined text-[32px] text-on-surface-variant/50">event_available</span>
+                    <span className="text-sm text-on-surface-variant font-medium">No upcoming deadlines!</span>
+                  </div>
+                )}
+              </div>
+            </Card>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

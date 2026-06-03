@@ -35,10 +35,38 @@ export async function loginAction(data: LoginFormValues) {
     // 2. Fetch the authoritative role from Prisma (cannot be spoofed by client)
     const dbUser = await prisma.user.findUnique({
       where: { id: authData.user.id },
-      select: { role: true, name: true, isActive: true },
+      select: { role: true, name: true, isActive: true, approvalStatus: true },
     });
 
     if (!dbUser) {
+      // AUTO-PROVISIONING: If this is an admin account but the Prisma DB was wiped
+      if (authData.user.email === "admin@edushare.edu" || authData.user.user_metadata?.role === "ADMIN") {
+        
+        // Clean up the dummy admin from seed.ts to avoid email unique constraints
+        try {
+          await prisma.user.delete({ where: { email: authData.user.email } });
+        } catch (e) {
+          // Ignore if it doesn't exist
+        }
+
+        const newAdmin = await prisma.user.create({
+          data: {
+            id: authData.user.id,
+            email: authData.user.email!,
+            name: authData.user.user_metadata?.name || "System Administrator",
+            department: "IT Department",
+            role: "ADMIN",
+            isActive: true,
+          }
+        });
+        
+        await supabase.auth.updateUser({
+          data: { role: newAdmin.role, name: newAdmin.name },
+        });
+
+        return { success: true as const, role: newAdmin.role };
+      }
+
       // Sign them back out — no profile means no access
       await supabase.auth.signOut();
       return {
@@ -53,6 +81,22 @@ export async function loginAction(data: LoginFormValues) {
       return {
         success: false as const,
         error: "Your account has been deactivated. Please contact an administrator.",
+      };
+    }
+
+    if (dbUser.approvalStatus === "PENDING") {
+      await supabase.auth.signOut();
+      return {
+        success: false as const,
+        error: "Your registration is pending faculty approval.",
+      };
+    }
+
+    if (dbUser.approvalStatus === "REJECTED") {
+      await supabase.auth.signOut();
+      return {
+        success: false as const,
+        error: "Your registration was rejected. Please contact the faculty.",
       };
     }
 
@@ -77,9 +121,21 @@ export async function loginAction(data: LoginFormValues) {
 // ─────────────────────────────────────────────────────────────────────────────
 export async function registerAction(data: RegisterFormValues) {
   const supabase = createClient();
-  const { name, email, department, role, password } = data;
+  const { name, email, sectionCode, password } = data;
 
-  // 1. Check if email already exists in Prisma
+  // 1. Verify that the section code is valid
+  const validClass = await prisma.class.findUnique({
+    where: { classCode: sectionCode },
+  });
+
+  if (!validClass) {
+    return {
+      success: false as const,
+      error: "Invalid Section Code. Please ask your faculty for the correct code.",
+    };
+  }
+
+  // 2. Check if email already exists in Prisma
   const existingUser = await prisma.user.findUnique({ where: { email } });
   if (existingUser) {
     return {
@@ -88,15 +144,16 @@ export async function registerAction(data: RegisterFormValues) {
     };
   }
 
-  // 2. Create in Supabase Auth with role metadata pre-set
-  const { data: authData, error } = await supabase.auth.signUp({
+  // 3. Create in Supabase Auth using Admin Client to auto-confirm email
+  // (We don't want them waiting on an email, only Faculty Approval)
+  const adminClient = createAdminClient();
+  const { data: authData, error } = await adminClient.auth.admin.createUser({
     email,
     password,
-    options: {
-      data: {
-        role,
-        name,
-      },
+    email_confirm: true,
+    user_metadata: {
+      role: "STUDENT",
+      name,
     },
   });
 
@@ -108,17 +165,28 @@ export async function registerAction(data: RegisterFormValues) {
     return { success: false as const, error: "Failed to create account." };
   }
 
-  // 3. Create the Prisma user profile synced to the real Supabase Auth UUID
+  // 4. Create the Prisma user profile (PENDING) and link to the class
   try {
-    await prisma.user.create({
-      data: {
-        id: authData.user.id,
-        name,
-        email,
-        department: department || null,
-        role: role as Role,
-        isActive: true,
-      },
+    await prisma.$transaction(async (tx) => {
+      // Create User
+      const newUser = await tx.user.create({
+        data: {
+          id: authData.user.id,
+          name,
+          email,
+          role: "STUDENT",
+          isActive: true, // They are technically active, just not approved
+          approvalStatus: "PENDING",
+        },
+      });
+
+      // Create ClassMembership
+      await tx.classMembership.create({
+        data: {
+          classId: validClass.id,
+          studentId: newUser.id,
+        },
+      });
     });
 
     return { success: true as const };

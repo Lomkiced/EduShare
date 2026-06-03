@@ -1,17 +1,56 @@
-import type { Metadata } from "next";
+import prisma from "@/lib/prisma";
+import { MembersClient } from "./MembersClient";
 
-export const metadata: Metadata = { title: "Class Members" };
+export const metadata = { title: "Class Members" };
 
-export default function FacultyClassMembersPage({
+export default async function FacultyClassMembersPage({
   params,
 }: {
   params: { classId: string };
 }) {
+  // Fetch class to ensure it exists and get its members
+  const classData = await prisma.class.findUnique({
+    where: { id: params.classId },
+    include: {
+      members: {
+        include: {
+          student: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              avatarUrl: true,
+              approvalStatus: true,
+            },
+          },
+        },
+        orderBy: { joinedAt: "desc" },
+      },
+    },
+  });
+
+  if (!classData) return <div>Class not found.</div>;
+
+  const pendingStudents = classData.members
+    .filter((m) => m.student.approvalStatus === "PENDING")
+    .map((m) => m.student);
+
+  const approvedStudents = classData.members
+    .filter((m) => m.student.approvalStatus === "APPROVED")
+    .map((m) => m.student);
+
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-bold mb-2">Class Members</h1>
-      <p className="text-muted-foreground text-sm mb-4">Class ID: {params.classId}</p>
-      <p className="text-muted-foreground">Manage enrolled students — Coming Soon</p>
+    <div className="p-4 md:p-8 max-w-[1200px] mx-auto w-full">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-on-surface tracking-tight mb-2">Class Members</h1>
+        <p className="text-on-surface-variant text-lg">Manage enrollment and approve pending students.</p>
+      </div>
+
+      <MembersClient 
+        classId={params.classId} 
+        pendingStudents={pendingStudents as any} 
+        approvedStudents={approvedStudents as any} 
+      />
     </div>
   );
 }

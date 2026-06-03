@@ -1,184 +1,318 @@
 /**
  * types/index.ts
  *
- * Global TypeScript interfaces mirroring the Prisma schema.
- * Use these types throughout the app for type-safe data handling.
+ * Canonical TypeScript types for EduShare frontend.
+ * All API responses map to these types.
  */
 
-// ─── Enums ────────────────────────────────────────────────────────────────────
+// ─── Re-export Prisma enums for client use ────────────────────────────────────
 
 export type Role = "STUDENT" | "FACULTY" | "ADMIN";
-
 export type SubmissionStatus = "PENDING" | "SUBMITTED" | "REVIEWED";
-
 export type ReportReason =
   | "INAPPROPRIATE"
   | "BULLYING"
   | "UNRELATED"
   | "SPAM"
   | "OTHER";
-
 export type ReportStatus = "PENDING" | "RESOLVED" | "DISMISSED";
 
 // ─── Core Models ──────────────────────────────────────────────────────────────
 
-export interface User {
-  id: string;
-  email: string;
-  name: string;
-  avatarUrl: string | null;
+export interface UserProfile {
+  id:         string;
+  email:      string;
+  name:       string;
+  avatarUrl:  string | null;
   department: string | null;
-  role: Role;
-  isActive: boolean;
-  createdAt: Date | string;
-  updatedAt: Date | string;
+  role:       Role;
+  isActive:   boolean;
+  createdAt:  string;
+  updatedAt:  string;
 }
 
-export interface Class {
-  id: string;
-  name: string;
-  subject: string;
+export interface ClassSection {
+  id:          string;
+  name:        string;
+  subject:     string;
   description: string | null;
-  classCode: string;
-  inviteLink: string | null;
-  isArchived: boolean;
-  createdAt: Date | string;
-  facultyId: string;
-  faculty?: User;
-  members?: ClassMembership[];
-  posts?: Post[];
+  classCode:   string;
+  inviteLink:  string | null;
+  isArchived:  boolean;
+  createdAt:   string;
+  facultyId:   string;
+  joinedAt?:   string;
+  faculty?:    Pick<UserProfile, "id" | "name" | "avatarUrl" | "email">;
+  members?:    ClassMember[];
   _count?: {
+    posts:   number;
     members: number;
-    posts: number;
   };
 }
 
-export interface ClassMembership {
-  id: string;
-  classId: string;
+export interface ClassMember {
+  id:        string;
+  classId:   string;
   studentId: string;
-  joinedAt: Date | string;
-  class?: Class;
-  student?: User;
+  joinedAt:  string;
+  student:   Pick<UserProfile, "id" | "name" | "avatarUrl" | "email" | "department">;
+}
+
+export interface PostFile {
+  id:       string;
+  fileName: string;
+  fileUrl:  string;
+  fileType: string;
+  fileSize: number;
+  postId:   string;
 }
 
 export interface Post {
-  id: string;
-  classId: string;
-  authorId: string;
-  content: string;
-  category: string | null;
-  isPinned: boolean;
-  isSubmissionPost: boolean;
-  submissionDeadline: Date | string | null;
-  createdAt: Date | string;
-  updatedAt: Date | string;
-  class?: Class;
-  author?: User;
-  files?: PostFile[];
-  comments?: Comment[];
-  submissions?: Submission[];
+  id:                 string;
+  content:            string;
+  category:           string | null;
+  isPinned:           boolean;
+  isSubmissionPost:   boolean;
+  submissionDeadline: string | null;
+  createdAt:          string;
+  updatedAt:          string;
+  classId:            string;
+  authorId:           string;
+  author:             Pick<UserProfile, "id" | "name" | "avatarUrl" | "role">;
+  files:              PostFile[];
+  comments?:          Comment[];
   _count?: {
-    comments: number;
+    comments:    number;
     submissions: number;
   };
 }
 
-export interface PostFile {
-  id: string;
-  postId: string;
-  fileName: string;
-  fileUrl: string;
-  fileType: string;
-  fileSize: number;
-  post?: Post;
-}
-
 export interface Comment {
-  id: string;
-  postId: string;
-  authorId: string;
-  content: string;
-  createdAt: Date | string;
-  post?: Post;
-  author?: User;
+  id:        string;
+  content:   string;
+  createdAt: string;
+  postId:    string;
+  authorId:  string;
+  author:    Pick<UserProfile, "id" | "name" | "avatarUrl" | "role">;
 }
 
 export interface Submission {
-  id: string;
-  postId: string;
-  studentId: string;
-  fileUrl: string;
-  fileName: string;
-  fileType: string;
-  status: SubmissionStatus;
-  submittedAt: Date | string;
-  updatedAt: Date | string;
-  post?: Post;
-  student?: User;
-}
-
-export interface Report {
-  id: string;
-  reporterId: string;
-  reportedUserId: string | null;
-  postId: string | null;
-  reason: ReportReason;
-  description: string | null;
-  status: ReportStatus;
-  actionTaken: string | null;
-  createdAt: Date | string;
-  resolvedAt: Date | string | null;
-  reporter?: User;
-  reportedUser?: User | null;
-  post?: Post | null;
+  id:          string;
+  fileUrl:     string;
+  fileName:    string;
+  fileType:    string;
+  status:      SubmissionStatus;
+  submittedAt: string;
+  updatedAt:   string;
+  postId:      string;
+  studentId:   string;
+  student?:    Pick<UserProfile, "id" | "name" | "avatarUrl" | "email">;
 }
 
 export interface Notification {
-  id: string;
-  userId: string;
-  type: string;
-  message: string;
-  isRead: boolean;
+  id:          string;
+  type:        string;
+  message:     string;
+  isRead:      boolean;
   referenceId: string | null;
-  createdAt: Date | string;
-  user?: User;
+  createdAt:   string;
+  userId:      string;
 }
 
-// ─── API Response Wrappers ────────────────────────────────────────────────────
-
-export interface ApiResponse<T = unknown> {
-  data: T | null;
-  error: string | null;
-  success: boolean;
+export interface Report {
+  id:             string;
+  reason:         ReportReason;
+  description:    string | null;
+  status:         ReportStatus;
+  actionTaken:    string | null;
+  createdAt:      string;
+  resolvedAt:     string | null;
+  reporterId:     string;
+  reportedUserId: string | null;
+  postId:         string | null;
+  reporter?:      Pick<UserProfile, "id" | "name" | "email" | "avatarUrl" | "role">;
+  reportedUser?:  Pick<UserProfile, "id" | "name" | "email" | "avatarUrl" | "role">;
+  post?: {
+    id:      string;
+    content: string;
+    class:   { id: string; name: string };
+    author:  { id: string; name: string };
+  };
 }
 
-export interface PaginatedResponse<T = unknown> {
-  data: T[];
-  total: number;
-  page: number;
-  pageSize: number;
-  hasMore: boolean;
-}
-
-// ─── Auth ─────────────────────────────────────────────────────────────────────
-
-export interface AuthUser {
-  id: string;
-  email: string;
-  role: Role;
-  name: string;
-  avatarUrl: string | null;
-}
-
-// ─── Analytics (Admin) ────────────────────────────────────────────────────────
-
-export interface AnalyticsSummary {
-  totalUsers: number;
-  totalStudents: number;
-  totalFaculty: number;
-  totalClasses: number;
-  totalPosts: number;
+export interface AnalyticsOverview {
+  totalUsers:       number;
+  totalStudents:    number;
+  totalFaculty:     number;
+  totalClasses:     number;
+  activeClasses:    number;
+  totalPosts:       number;
   totalSubmissions: number;
-  pendingReports: number;
+  pendingReports:   number;
+  submissionRate:   number;
 }
+
+export interface AnalyticsData {
+  overview:        AnalyticsOverview;
+  recentUsers:     Pick<UserProfile, "id" | "name" | "email" | "role" | "createdAt" | "department">[];
+  monthlyActivity: { date: string; post_count: number }[];
+  topClasses:      (ClassSection & { _count: { posts: number; members: number } })[];
+}
+
+export interface NotificationsResponse {
+  notifications: Notification[];
+  unreadCount:   number;
+}
+
+// ─── Phase 2: Lesson + Assessment Types ──────────────────────────────────────
+
+export type LessonStatus   = "LOCKED" | "UNLOCKED" | "COMPLETED";
+export type AssessmentType = "MULTIPLE_CHOICE" | "MULTIPLE_SELECT" | "MATCHING" | "TRUE_OR_FALSE" | "SHORT_ANSWER";
+export type AttemptStatus  = "IN_PROGRESS" | "PASSED" | "FAILED";
+
+export interface Lesson {
+  id:            string;
+  classId:       string;
+  title:         string;
+  description:   string | null;
+  order:         number;
+  videoUrl:      string;
+  videoKey:      string;
+  videoDuration: number;
+  thumbnailUrl:  string | null;
+  isPublished:   boolean;
+  createdAt:     string;
+  updatedAt:     string;
+  assessment?:   Assessment | null;
+  progress?:     LessonProgress | null;
+}
+
+export interface LessonProgress {
+  id:             string;
+  lessonId:       string;
+  studentId:      string;
+  watchedSeconds: number;
+  highestSecond:  number;
+  isCompleted:    boolean;
+  completedAt:    string | null;
+  lastHeartbeat:  string;
+  updatedAt:      string;
+}
+
+export interface LessonWithStatus extends Lesson {
+  status:            LessonStatus;
+  progress:          LessonProgress | null;
+  canTakeAssessment: boolean;
+  assessmentPassed:  boolean;
+}
+
+export interface Assessment {
+  id:               string;
+  lessonId:         string;
+  title:            string;
+  instructions:     string | null;
+  passingScore:     number;
+  maxAttempts:      number;
+  timeLimitMins:    number | null;
+  shuffleQuestions: boolean;
+  showResults:      boolean;
+  createdAt:        string;
+  updatedAt:        string;
+  questions?:       Question[];
+  attempts?:        AssessmentAttempt[];
+  _count?: {
+    questions: number;
+    attempts:  number;
+  };
+}
+
+export interface Question {
+  id:           string;
+  assessmentId: string;
+  type:         AssessmentType;
+  order:        number;
+  questionText: string;
+  points:       number;
+  imageUrl:     string | null;
+  explanation:  string | null;
+  choices?:     QuestionChoice[];
+  matchPairs?:  MatchPair[];
+}
+
+export interface QuestionChoice {
+  id:         string;
+  questionId: string;
+  choiceText: string;
+  isCorrect:  boolean;
+  order:      number;
+}
+
+export interface MatchPair {
+  id:         string;
+  questionId: string;
+  leftItem:   string;
+  rightItem:  string;
+  order:      number;
+}
+
+export interface AssessmentAttempt {
+  id:            string;
+  assessmentId:  string;
+  studentId:     string;
+  attemptNumber: number;
+  score:         number | null;
+  totalPoints:   number | null;
+  earnedPoints:  number | null;
+  status:        AttemptStatus;
+  startedAt:     string;
+  submittedAt:   string | null;
+  timeLimitEnd:  string | null;
+  answers?:      StudentAnswer[];
+  student?:      Pick<UserProfile, "id" | "name" | "avatarUrl" | "email">;
+}
+
+export interface StudentAnswer {
+  id:                string;
+  attemptId:         string;
+  questionId:        string;
+  selectedChoiceIds: string[];
+  matchAnswers:      { leftItem: string; selectedRightItem: string }[] | null;
+  textAnswer:        string | null;
+  isCorrect:         boolean | null;
+  pointsEarned:      number;
+}
+
+// Shape returned to student during an active attempt
+// isCorrect is NEVER exposed until after submission
+export interface AttemptQuestion {
+  id:           string;
+  type:         AssessmentType;
+  order:        number;
+  questionText: string;
+  points:       number;
+  imageUrl:     string | null;
+  choices?:     Omit<QuestionChoice, "isCorrect">[];
+  matchPairs?: {
+    id:       string;
+    leftItem: string;
+    order:    number;
+  }[];
+  shuffledRightItems?: string[];
+  currentAnswer?:      StudentAnswer | null;
+}
+
+export interface AttemptSession {
+  attempt:       AssessmentAttempt;
+  assessment:    Assessment;
+  questions:     AttemptQuestion[];
+  timeRemaining: number | null;
+}
+
+export interface LessonResults {
+  lesson:      Lesson;
+  assessment:  Assessment;
+  attempts:    AssessmentAttempt[];
+  bestAttempt: AssessmentAttempt | null;
+  hasPassed:   boolean;
+}
+

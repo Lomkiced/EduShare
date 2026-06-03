@@ -6,10 +6,8 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
-import { AuthCard } from "@/components/auth/AuthCard";
-import { EduShareLogo } from "@/components/auth/EduShareLogo";
 import { FormInput } from "@/components/auth/FormInput";
+import { LoadingButton } from "@/components/shared/LoadingButton";
 import { loginSchema, LoginFormValues } from "@/lib/validations/auth";
 import { loginAction } from "@/lib/actions/auth";
 
@@ -26,7 +24,6 @@ export default function LoginPage() {
     defaultValues: {
       email: "",
       password: "",
-      role: "STUDENT",
     },
   });
 
@@ -60,18 +57,25 @@ export default function LoginPage() {
   };
 
   return (
-    <AuthCard>
-      <EduShareLogo
-        title="Login to your account"
-        subtitle="Access your academic resources."
-      />
+    <div className="bg-surface-container-lowest/80 backdrop-blur-2xl p-8 sm:p-12 rounded-[2rem] shadow-[0_8px_40px_rgb(0,0,0,0.08)] border border-white/40 w-full animate-in fade-in zoom-in-95 duration-500">
+      <div className="mb-10 lg:hidden">
+        <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center text-on-primary shadow-lg shadow-primary/20 mb-4">
+          <span className="material-symbols-outlined text-[28px]">school</span>
+        </div>
+        <h1 className="text-2xl font-black text-on-surface tracking-tight">EduShare</h1>
+      </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-md">
+      <div className="mb-10">
+        <h2 className="text-3xl font-black text-on-surface tracking-tight mb-2">Welcome Back</h2>
+        <p className="text-on-surface-variant font-medium">Sign in to access your dashboard and classes.</p>
+      </div>
+
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <FormInput
           id="email"
           label="Email Address"
           type="email"
-          placeholder="student@edushare.edu"
+          placeholder="user@edushare.edu"
           icon="mail"
           {...register("email")}
           error={errors.email?.message}
@@ -90,73 +94,37 @@ export default function LoginPage() {
           rightElement={
             <Link
               href="/forgot-password"
-              className="font-label-sm text-primary hover:text-primary-container transition-colors"
+              className="font-label-sm font-bold text-primary hover:text-primary-container transition-colors"
             >
               Forgot Password?
             </Link>
           }
         />
 
-        <div>
-          <p className="font-label-md text-on-surface mb-base">I am a...</p>
-          <div className="grid grid-cols-2 gap-sm">
-            <label className="cursor-pointer">
-              <input
-                type="radio"
-                value="STUDENT"
-                {...register("role")}
-                className="sr-only peer"
-                disabled={isSubmitting}
-              />
-              <div className="w-full text-center py-sm border border-outline-variant rounded bg-surface-container-lowest text-on-surface font-label-md peer-checked:bg-primary-container peer-checked:text-on-primary-container peer-checked:border-primary-container transition-colors">
-                Student
-              </div>
-            </label>
-            <label className="cursor-pointer">
-              <input
-                type="radio"
-                value="FACULTY"
-                {...register("role")}
-                className="sr-only peer"
-                disabled={isSubmitting}
-              />
-              <div className="w-full text-center py-sm border border-outline-variant rounded bg-surface-container-lowest text-on-surface font-label-md peer-checked:bg-primary-container peer-checked:text-on-primary-container peer-checked:border-primary-container transition-colors">
-                Faculty
-              </div>
-            </label>
-          </div>
-          {errors.role && (
-            <p className="mt-1 text-error font-label-sm">
-              {errors.role.message}
-            </p>
-          )}
-        </div>
-
-        <button
+        <LoadingButton
           type="submit"
-          disabled={isSubmitting}
-          className="flex w-full items-center justify-center py-[8px] px-[20px] bg-secondary text-on-secondary rounded font-label-md shadow-level-1 hover:bg-secondary-container hover:text-on-secondary-container focus:ring-2 focus:ring-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          isLoading={isSubmitting}
+          loadingText="Signing in..."
+          variant="primary"
+          className="group w-full py-[14px] px-[20px] rounded-xl font-bold shadow-md hover:shadow-xl hover:bg-primary-container hover:text-on-primary-container focus:ring-4 focus:ring-primary/20 transition-all duration-300 mt-8 relative overflow-hidden"
         >
-          {isSubmitting ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Signing in...
-            </>
-          ) : (
-            "Sign In"
-          )}
-        </button>
+          <div className="absolute inset-0 w-full h-full bg-white/20 -translate-x-full group-hover:animate-shimmer"></div>
+          <span className="flex items-center gap-2 group-hover:scale-105 transition-transform">
+            Sign In
+            <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+          </span>
+        </LoadingButton>
       </form>
 
-      <div className="mt-md text-center font-body-sm text-on-surface-variant">
+      <div className="mt-10 text-center font-body-sm text-on-surface-variant border-t border-outline-variant/30 pt-8">
         Don&apos;t have an account?{" "}
         <Link
           href="/register"
-          className="font-label-md text-primary hover:text-primary-container transition-colors"
+          className="font-label-md font-bold text-primary hover:text-primary-container transition-colors"
         >
           Create Account
         </Link>
       </div>
-    </AuthCard>
+    </div>
   );
 }

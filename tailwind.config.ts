@@ -140,10 +140,29 @@ const config: Config = {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+        shimmer: {
+          "100%": { transform: "translateX(100%)" },
+        },
+        "slide-in-up": {
+          "0%": { transform: "translateY(10px)", opacity: "0" },
+          "100%": { transform: "translateY(0)", opacity: "1" },
+        },
+        "fade-in": {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
+        },
+        "bounce-subtle": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-4px)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        shimmer: "shimmer 2s infinite",
+        "slide-in-up": "slide-in-up 0.4s ease-out forwards",
+        "fade-in": "fade-in 0.3s ease-out forwards",
+        "bounce-subtle": "bounce-subtle 2s ease-in-out infinite",
       },
     },
   },
