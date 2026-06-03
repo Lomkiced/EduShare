@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { FormInput } from "@/components/auth/FormInput";
 import { LoadingButton } from "@/components/shared/LoadingButton";
-import { registerSchema, RegisterFormValues } from "@/lib/validations/auth";
+import { adminCreateUserSchema, AdminCreateUserFormValues } from "@/lib/validations/auth";
 import { adminCreateUserAction } from "@/lib/actions/admin";
 
 interface AddUserModalProps {
@@ -32,8 +32,8 @@ export function AddUserModal({ open, onOpenChange, onSuccess }: AddUserModalProp
     handleSubmit,
     formState: { errors },
     reset,
-  } = useForm<RegisterFormValues>({
-    resolver: zodResolver(registerSchema),
+  } = useForm<AdminCreateUserFormValues>({
+    resolver: zodResolver(adminCreateUserSchema),
     defaultValues: {
       name: "",
       email: "",
@@ -44,7 +44,7 @@ export function AddUserModal({ open, onOpenChange, onSuccess }: AddUserModalProp
     },
   });
 
-  const onSubmit = async (data: RegisterFormValues) => {
+  const onSubmit = async (data: AdminCreateUserFormValues) => {
     setIsSubmitting(true);
     try {
       const result = await adminCreateUserAction(data);

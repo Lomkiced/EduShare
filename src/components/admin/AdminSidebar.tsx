@@ -4,7 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useSidebarStore } from "@/store/sidebarStore";
-import { createClient } from "@/lib/supabase/client";
+import { logoutAction } from "@/lib/actions/auth";
 
 const navItems = [
   { label: "Dashboard", icon: "dashboard", href: "/admin/dashboard" },
@@ -17,10 +17,9 @@ export default function AdminSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { isOpen, close } = useSidebarStore();
-  const supabase = createClient();
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    await logoutAction();
     router.push("/login");
   };
 

@@ -4,9 +4,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import prisma from "@/lib/prisma";
 import { getAuthSession } from "@/lib/auth-session";
 import { Role } from "@prisma/client";
-import { RegisterFormValues } from "@/lib/validations/auth";
+import { AdminCreateUserFormValues } from "@/lib/validations/auth";
 
-export async function adminCreateUserAction(data: RegisterFormValues) {
+export async function adminCreateUserAction(data: AdminCreateUserFormValues) {
   try {
     const session = await getAuthSession();
     
