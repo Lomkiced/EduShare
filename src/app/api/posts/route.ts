@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
       if (!hasAccess) return errorResponse(ERRORS.FORBIDDEN.message, ERRORS.FORBIDDEN.status);
       whereClause = { classId };
     } else {
-      // Fetch posts for all classes the user has access to
+      // Resolve accessible class IDs based on role
       if (profile.role === "STUDENT") {
         const memberships = await prisma.classMembership.findMany({
           where: { studentId: profile.id },

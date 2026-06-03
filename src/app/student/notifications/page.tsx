@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useNotifications, useMarkNotificationsRead } from "@/hooks/use-notifications";
+import { useNotifications, useMarkNotificationsRead, useClearReadNotifications } from "@/hooks/use-notifications";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -9,11 +9,14 @@ export default function StudentNotificationsPage() {
   const { data: notifData, isLoading } = useNotifications();
   const notifications = notifData?.notifications || [];
   const { mutate: markRead } = useMarkNotificationsRead();
+  const { mutate: clearRead, isPending: isClearing } = useClearReadNotifications();
 
   const handleMarkAllRead = () => {
-    const unreadIds = notifications.filter((n) => !n.isRead).map((n) => n.id);
+    const unreadIds = notifications.filter((n: any) => !n.isRead).map((n: any) => n.id);
     if (unreadIds.length > 0) markRead(unreadIds);
   };
+
+  const hasReadNotifications = notifications.some((n: any) => n.isRead);
 
   return (
     <div className="p-6 md:p-8 max-w-[1000px] mx-auto w-full">
@@ -22,10 +25,21 @@ export default function StudentNotificationsPage() {
           <h1 className="text-3xl font-bold text-on-surface tracking-tight mb-2">Notifications</h1>
           <p className="text-on-surface-variant text-lg">Your activity notifications.</p>
         </div>
-        <Button onClick={handleMarkAllRead} variant="outline" className="border-outline-variant/50 hover:bg-surface-container text-on-surface shadow-sm">
-          <span className="material-symbols-outlined text-[18px] mr-2">done_all</span>
-          Mark all as read
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button 
+            onClick={() => clearRead()} 
+            disabled={!hasReadNotifications || isClearing}
+            variant="outline" 
+            className="border-error/20 hover:bg-error/10 text-error shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <span className="material-symbols-outlined text-[18px] mr-2">delete</span>
+            Delete all
+          </Button>
+          <Button onClick={handleMarkAllRead} variant="outline" className="border-outline-variant/50 hover:bg-surface-container text-on-surface shadow-sm">
+            <span className="material-symbols-outlined text-[18px] mr-2">done_all</span>
+            Mark as read all
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (

@@ -11,87 +11,123 @@ export default async function FacultyDashboardPage() {
   if (!session || session.profile.role !== "FACULTY") redirect("/login");
   const facultyId = session.profile.id;
 
-  // Fetch real data for faculty dashboard
-  const [sections, totalStudents, activePosts, pendingSubmissions, submissionsByStatus, sectionsAnalytics, recentSubs] = await Promise.all([
-    // 1. Fetch faculty's sections count
-    prisma.class.count({
-      where: { facultyId, isArchived: false },
-    }),
-    // 2. Count distinct students across all their sections
-    prisma.classMembership.count({
-      where: { class: { facultyId } },
-    }),
-    // 3. Count total active posts in their sections
-    prisma.post.count({
-      where: { class: { facultyId } },
-    }),
-    // 4. Count pending submissions across their classes
-    prisma.submission.count({
-      where: {
-        status: "SUBMITTED",
-        post: { class: { facultyId } },
-      },
-    }),
-    // 5. Submissions by status for Pie Chart
-    prisma.submission.groupBy({
-      by: ['status'],
-      where: { post: { class: { facultyId } } },
-      _count: { id: true },
-    }),
-    // 6. Sections engagement for Bar Chart
-    prisma.class.findMany({
-      where: { facultyId, isArchived: false },
-      select: {
-        name: true,
-        _count: { select: { members: true, posts: true } },
-      },
-      take: 5,
-    }),
-    // 7. Recent submissions for Area Chart
-    prisma.submission.findMany({
-      where: { post: { class: { facultyId } } },
-      select: { submittedAt: true },
-      orderBy: { submittedAt: 'desc' },
-      take: 100,
-    })
-  ]);
+  // Fetch real data for faculty dashboard — wrapped in try/catch so a DB
+  // hiccup (e.g. Supabase free-tier project paused) never crashes the page.
+  let sections = 0;
+  let totalStudents = 0;
+  let activePosts = 0;
+  let pendingSubmissions = 0;
+  let submissionsStatus: { status: string; count: number }[] = [];
+  let sectionsEngagement: { name: string; studentCount: number; postCount: number }[] = [];
+  let recentActivity: { month: string; submissions: number }[] = [];
+  let dbError = false;
 
-  // Format submissions by status
-  const submissionsStatus = submissionsByStatus.map(s => ({
-    status: s.status,
-    count: s._count.id,
-  }));
+  try {
+    const [
+      _sections,
+      _totalStudents,
+      _activePosts,
+      _pendingSubmissions,
+      _submissionsByStatus,
+      _sectionsAnalytics,
+      _recentSubs,
+    ] = await Promise.all([
+      // 1. Fetch faculty's sections count
+      prisma.class.count({
+        where: { facultyId, isArchived: false },
+      }),
+      // 2. Count distinct students across all their sections
+      prisma.classMembership.count({
+        where: { class: { facultyId } },
+      }),
+      // 3. Count total active posts in their sections
+      prisma.post.count({
+        where: { class: { facultyId } },
+      }),
+      // 4. Count pending submissions across their classes
+      prisma.submission.count({
+        where: {
+          status: "SUBMITTED",
+          post: { class: { facultyId } },
+        },
+      }),
+      // 5. Submissions by status for Pie Chart
+      prisma.submission.groupBy({
+        by: ["status"],
+        where: { post: { class: { facultyId } } },
+        _count: { id: true },
+      }),
+      // 6. Sections engagement for Bar Chart
+      prisma.class.findMany({
+        where: { facultyId, isArchived: false },
+        select: {
+          name: true,
+          _count: { select: { members: true, posts: true } },
+        },
+        take: 5,
+      }),
+      // 7. Recent submissions for Area Chart
+      prisma.submission.findMany({
+        where: { post: { class: { facultyId } } },
+        select: { submittedAt: true },
+        orderBy: { submittedAt: "desc" },
+        take: 100,
+      }),
+    ]);
 
-  // Format sections engagement
-  const sectionsEngagement = sectionsAnalytics.map(s => ({
-    name: s.name.length > 15 ? s.name.substring(0, 15) + "..." : s.name,
-    studentCount: s._count.members,
-    postCount: s._count.posts,
-  }));
+    sections = _sections;
+    totalStudents = _totalStudents;
+    activePosts = _activePosts;
+    pendingSubmissions = _pendingSubmissions;
 
-  // Format recent activity (last 6 months)
-  const monthsMap = new Map<string, number>();
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date();
-    d.setMonth(d.getMonth() - i);
-    const monthStr = d.toLocaleString('default', { month: 'short' });
-    monthsMap.set(monthStr, 0);
-  }
+    // Format submissions by status
+    submissionsStatus = _submissionsByStatus.map((s) => ({
+      status: s.status,
+      count: s._count.id,
+    }));
 
-  recentSubs.forEach(sub => {
-    const monthStr = sub.submittedAt.toLocaleString('default', { month: 'short' });
-    if (monthsMap.has(monthStr)) {
-      monthsMap.set(monthStr, monthsMap.get(monthStr)! + 1);
+    // Format sections engagement
+    sectionsEngagement = _sectionsAnalytics.map((s) => ({
+      name: s.name.length > 15 ? s.name.substring(0, 15) + "..." : s.name,
+      studentCount: s._count.members,
+      postCount: s._count.posts,
+    }));
+
+    // Format recent activity (last 6 months)
+    const monthsMap = new Map<string, number>();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date();
+      d.setMonth(d.getMonth() - i);
+      monthsMap.set(d.toLocaleString("default", { month: "short" }), 0);
     }
-  });
-
-  const recentActivity = Array.from(monthsMap.entries()).map(([month, submissions]) => ({
-    month,
-    submissions,
-  }));
+    _recentSubs.forEach((sub) => {
+      const key = sub.submittedAt.toLocaleString("default", { month: "short" });
+      if (monthsMap.has(key)) monthsMap.set(key, monthsMap.get(key)! + 1);
+    });
+    recentActivity = Array.from(monthsMap.entries()).map(([month, submissions]) => ({
+      month,
+      submissions,
+    }));
+  } catch (err) {
+    console.error("[FacultyDashboard] Database unreachable:", err);
+    dbError = true;
+  }
 
   return (
     <>
+      {/* DB connectivity warning — shown when Supabase is paused/unreachable */}
+      {dbError && (
+        <div className="mb-6 flex items-center gap-3 rounded-2xl border border-error/30 bg-error-container/20 px-5 py-4 text-on-error-container">
+          <span className="material-symbols-outlined text-error text-[22px] shrink-0">cloud_off</span>
+          <div>
+            <p className="font-label-md font-bold text-error">Database temporarily unavailable</p>
+            <p className="font-label-sm text-on-surface-variant mt-0.5">
+              Could not connect to the database. Stats are showing as zero. Please refresh the page in a moment — if this persists, check your Supabase project is not paused.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Premium Hero Banner */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/10 via-surface to-secondary-container/20 border border-outline-variant/30 p-8 md:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] mb-8">
         <div className="absolute top-0 right-0 -mr-20 -mt-20 w-72 h-72 bg-primary/20 blur-3xl rounded-full pointer-events-none mix-blend-multiply"></div>

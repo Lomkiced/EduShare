@@ -118,6 +118,7 @@ model Class {
   // Phase 2
   lessons     Lesson[]
 
+  @@index([facultyId])
   @@map("classes")
 }
 
@@ -132,6 +133,8 @@ model ClassMembership {
   student   User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([classId, studentId])
+  @@index([classId])
+  @@index([studentId])
   @@map("class_memberships")
 }
 
@@ -156,6 +159,9 @@ model Post {
   submissions Submission[]
   reports    Report[]
 
+  @@index([classId])
+  @@index([authorId])
+  @@index([classId, isPinned, createdAt])
   @@map("posts")
 }
 
@@ -170,6 +176,7 @@ model PostFile {
   postId   String
   post     Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
 
+  @@index([postId])
   @@map("post_files")
 }
 
@@ -184,6 +191,8 @@ model Comment {
   authorId  String
   author    User   @relation(fields: [authorId], references: [id])
 
+  @@index([postId])
+  @@index([authorId])
   @@map("comments")
 }
 
@@ -203,6 +212,8 @@ model Submission {
   student     User   @relation(fields: [studentId], references: [id])
 
   @@unique([postId, studentId])
+  @@index([postId])
+  @@index([studentId])
   @@map("submissions")
 }
 
@@ -223,6 +234,10 @@ model Report {
   postId          String?
   post            Post?  @relation(fields: [postId], references: [id], onDelete: SetNull)
 
+  @@index([reporterId])
+  @@index([reportedUserId])
+  @@index([postId])
+  @@index([status])
   @@map("reports")
 }
 
@@ -239,6 +254,8 @@ model Notification {
   userId      String
   user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
   @@map("notifications")
 }
 
@@ -267,6 +284,7 @@ model Lesson {
   progress      LessonProgress[]
 
   @@unique([classId, order])             // No duplicate order within a class
+  @@index([classId])
   @@map("lessons")
 }
 
@@ -288,6 +306,8 @@ model LessonProgress {
   updatedAt      DateTime  @updatedAt
 
   @@unique([lessonId, studentId])
+  @@index([lessonId])
+  @@index([studentId])
   @@map("lesson_progress")
 }
 
@@ -334,6 +354,7 @@ model Question {
   answers       StudentAnswer[]
 
   @@unique([assessmentId, order])
+  @@index([assessmentId])
   @@map("questions")
 }
 
@@ -347,6 +368,7 @@ model QuestionChoice {
   isCorrect  Boolean  @default(false)
   order      Int
 
+  @@index([questionId])
   @@map("question_choices")
 }
 
@@ -360,6 +382,7 @@ model MatchPair {
   rightItem  String   // The correct answer (shown on right, shuffled)
   order      Int
 
+  @@index([questionId])
   @@map("match_pairs")
 }
 
@@ -384,6 +407,8 @@ model AssessmentAttempt {
   answers       StudentAnswer[]
 
   @@unique([assessmentId, studentId, attemptNumber])
+  @@index([assessmentId])
+  @@index([studentId])
   @@map("assessment_attempts")
 }
 
@@ -410,5 +435,7 @@ model StudentAnswer {
   pointsEarned Float    @default(0)
 
   @@unique([attemptId, questionId])
+  @@index([attemptId])
+  @@index([questionId])
   @@map("student_answers")
 }

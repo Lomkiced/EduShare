@@ -1,58 +1,52 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
+import { useParams } from "next/navigation";
 import { UserAvatar } from "@/components/shared/user-avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-
-interface Classmate {
-  id: string;
-  name: string;
-  email: string;
-  major: string;
-}
-
-const mockInstructor = {
-  id: "fac_1",
-  name: "Dr. Alan Turing",
-  email: "alan.turing@university.edu",
-  role: "Instructor",
-};
-
-const mockClassmates: Classmate[] = [
-  { id: "stu_1", name: "Alice Smith", email: "alice.smith@student.edu", major: "Computer Science" },
-  { id: "stu_2", name: "Bob Johnson", email: "bob.johnson@student.edu", major: "Information Technology" },
-  { id: "stu_3", name: "Charlie Davis", email: "charlie.davis@student.edu", major: "Software Engineering" },
-  { id: "stu_4", name: "Diana Prince", email: "diana.prince@student.edu", major: "Computer Science" },
-  { id: "stu_5", name: "Ethan Hunt", email: "ethan.hunt@student.edu", major: "Data Science" },
-  { id: "stu_6", name: "Fiona Gallagher", email: "fiona.g@student.edu", major: "Cybersecurity" },
-  { id: "stu_7", name: "George Miller", email: "george.m@student.edu", major: "Information Technology" },
-  { id: "stu_8", name: "Hannah Abbott", email: "hannah.a@student.edu", major: "Computer Science" },
-  { id: "stu_9", name: "Ian Malcolm", email: "ian.m@student.edu", major: "Mathematics" },
-  { id: "stu_10", name: "Julia Roberts", email: "julia.r@student.edu", major: "Software Engineering" },
-];
+import { Skeleton } from "@/components/ui/skeleton";
+import { useClass, useClassMembers } from "@/hooks/use-class";
 
 export default function StudentClassMembersPage() {
+  const params  = useParams();
+  const classId = params.classId as string;
+
   const [searchQuery, setSearchQuery] = useState("");
 
-  const filteredClassmates = useMemo(() => {
-    if (!searchQuery.trim()) return mockClassmates;
+  const { data: classData, isLoading: isClassLoading } = useClass(classId);
+  const { data: members = [], isLoading: isMembersLoading } = useClassMembers(classId);
+
+  const isLoading = isClassLoading || isMembersLoading;
+
+  // instructor is always derived from the class detail (never from mock data)
+  const instructor = classData?.faculty ?? null;
+
+  // peers = all enrolled students derived from live membership data
+  const filteredPeers = useMemo(() => {
+    if (!searchQuery.trim()) return members;
     const query = searchQuery.toLowerCase();
-    return mockClassmates.filter(
-      (student) =>
-        student.name.toLowerCase().includes(query) ||
-        student.email.toLowerCase().includes(query) ||
-        student.major.toLowerCase().includes(query)
+    return members.filter(
+      (m) =>
+        m.student.name.toLowerCase().includes(query) ||
+        m.student.email.toLowerCase().includes(query) ||
+        (m.student.department ?? "").toLowerCase().includes(query)
     );
-  }, [searchQuery]);
+  }, [members, searchQuery]);
 
   return (
     <div className="p-6 md:p-8 max-w-[1600px] mx-auto w-full">
       {/* Page Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-on-surface tracking-tight mb-2">Classmates</h1>
-        <p className="text-on-surface-variant text-lg">Intro to Computing • Section C1</p>
+        {isLoading ? (
+          <Skeleton className="h-6 w-56 mt-1" />
+        ) : (
+          <p className="text-on-surface-variant text-lg">
+            {classData?.name ?? "—"} · {classData?.subject ?? "—"}
+          </p>
+        )}
       </div>
 
       {/* Control Bar */}
@@ -72,26 +66,42 @@ export default function StudentClassMembersPage() {
       </div>
 
       <div className="flex flex-col gap-10">
-        {/* Section 1: Leadership */}
+        {/* Section 1: Instructor */}
         <section>
           <h2 className="text-xl font-bold text-on-surface mb-4 flex items-center gap-2">
             <span className="material-symbols-outlined text-primary">school</span>
             Instructor
           </h2>
-          <Card className="border-outline-variant/30 shadow-sm bg-surface-container-lowest hover:shadow-md transition-all duration-300 w-full md:w-1/2 lg:w-1/3">
-            <CardContent className="p-5 flex items-center gap-4">
-              <UserAvatar name={mockInstructor.name} size="lg" />
-              <div className="flex flex-col flex-1 min-w-0">
-                <h3 className="font-bold text-lg text-on-surface truncate">{mockInstructor.name}</h3>
-                <p className="text-sm text-on-surface-variant truncate">{mockInstructor.email}</p>
-                <div className="mt-2">
-                  <Badge variant="secondary" className="bg-primary-container text-on-primary-container font-medium hover:bg-primary-container">
-                    {mockInstructor.role}
-                  </Badge>
+
+          {isLoading ? (
+            <Card className="border-outline-variant/30 shadow-sm bg-surface-container-lowest w-full md:w-1/2 lg:w-1/3">
+              <CardContent className="p-5 flex items-center gap-4">
+                <Skeleton className="w-12 h-12 rounded-full shrink-0" />
+                <div className="flex flex-col gap-2 flex-1">
+                  <Skeleton className="h-5 w-36" />
+                  <Skeleton className="h-4 w-48" />
+                  <Skeleton className="h-5 w-20 mt-1" />
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          ) : instructor ? (
+            <Card className="border-outline-variant/30 shadow-sm bg-surface-container-lowest hover:shadow-md transition-all duration-300 w-full md:w-1/2 lg:w-1/3">
+              <CardContent className="p-5 flex items-center gap-4">
+                <UserAvatar name={instructor.name} avatarUrl={instructor.avatarUrl} size="lg" />
+                <div className="flex flex-col flex-1 min-w-0">
+                  <h3 className="font-bold text-lg text-on-surface truncate">{instructor.name}</h3>
+                  <p className="text-sm text-on-surface-variant truncate">{instructor.email}</p>
+                  <div className="mt-2">
+                    <Badge variant="secondary" className="bg-primary-container text-on-primary-container font-medium hover:bg-primary-container">
+                      Instructor
+                    </Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <p className="text-on-surface-variant text-sm">No instructor assigned.</p>
+          )}
         </section>
 
         {/* Section 2: Peers */}
@@ -101,41 +111,68 @@ export default function StudentClassMembersPage() {
               <span className="material-symbols-outlined text-primary">group</span>
               Peers
             </h2>
-            <Badge variant="outline" className="text-on-surface-variant border-outline-variant/50">
-              {filteredClassmates.length} Student{filteredClassmates.length !== 1 ? 's' : ''}
-            </Badge>
+            {!isLoading && (
+              <Badge variant="outline" className="text-on-surface-variant border-outline-variant/50">
+                {members.length} Student{members.length !== 1 ? "s" : ""}
+              </Badge>
+            )}
           </div>
 
-          {filteredClassmates.length > 0 ? (
+          {isLoading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {filteredClassmates.map((student) => (
-                <Card 
-                  key={student.id} 
+              {Array.from({ length: 8 }).map((_, i) => (
+                <Card key={i} className="border-outline-variant/30 shadow-sm bg-surface-container-lowest">
+                  <CardContent className="p-5 flex flex-col items-center text-center gap-3">
+                    <Skeleton className="w-12 h-12 rounded-full" />
+                    <div className="flex flex-col w-full gap-2">
+                      <Skeleton className="h-4 w-28 mx-auto" />
+                      <Skeleton className="h-3 w-36 mx-auto" />
+                    </div>
+                    <Skeleton className="h-5 w-24 mt-1" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : filteredPeers.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {filteredPeers.map((membership) => (
+                <Card
+                  key={membership.id}
                   className="border-outline-variant/30 shadow-sm bg-surface-container-lowest hover:shadow-md hover:border-primary/30 transition-all duration-300"
                 >
                   <CardContent className="p-5 flex flex-col items-center text-center gap-3">
-                    <UserAvatar name={student.name} size="lg" />
+                    <UserAvatar name={membership.student.name} avatarUrl={membership.student.avatarUrl} size="lg" />
                     <div className="flex flex-col w-full min-w-0">
-                      <h3 className="font-bold text-base text-on-surface truncate">{student.name}</h3>
-                      <p className="text-sm text-on-surface-variant truncate">{student.email}</p>
+                      <h3 className="font-bold text-base text-on-surface truncate">{membership.student.name}</h3>
+                      <p className="text-sm text-on-surface-variant truncate">{membership.student.email}</p>
                     </div>
                     <Badge variant="outline" className="mt-1 font-normal bg-surface-container text-on-surface-variant border-outline-variant/30">
-                      {student.major}
+                      {membership.student.department ?? "No major listed"}
                     </Badge>
                   </CardContent>
                 </Card>
               ))}
             </div>
-          ) : (
+          ) : searchQuery.trim() ? (
+            // Search returned no results
             <div className="flex flex-col items-center justify-center py-16 text-center bg-surface-container-lowest/30 rounded-2xl border border-outline-variant/20 border-dashed">
               <span className="material-symbols-outlined text-5xl text-on-surface-variant mb-4 opacity-50">
                 person_search
               </span>
-              <h3 className="text-xl font-bold text-on-surface mb-2">
-                No classmates found
-              </h3>
+              <h3 className="text-xl font-bold text-on-surface mb-2">No classmates found</h3>
               <p className="text-on-surface-variant max-w-md mx-auto">
-                No students matched your search criteria "{searchQuery}".
+                No students matched your search criteria &quot;{searchQuery}&quot;.
+              </p>
+            </div>
+          ) : (
+            // No students enrolled at all
+            <div className="flex flex-col items-center justify-center py-16 text-center bg-surface-container-lowest/30 rounded-2xl border border-outline-variant/20 border-dashed">
+              <span className="material-symbols-outlined text-5xl text-on-surface-variant mb-4 opacity-50">
+                group_off
+              </span>
+              <h3 className="text-xl font-bold text-on-surface mb-2">No other students enrolled yet</h3>
+              <p className="text-on-surface-variant max-w-md mx-auto">
+                You are currently the only student in this class. Invite your peers using the class code!
               </p>
             </div>
           )}

@@ -181,8 +181,8 @@ export interface Lesson {
   videoDuration: number;
   thumbnailUrl:  string | null;
   isPublished:   boolean;
-  createdAt:     string;
-  updatedAt:     string;
+  createdAt:     string | Date;
+  updatedAt:     string | Date;
   assessment?:   Assessment | null;
   progress?:     LessonProgress | null;
 }

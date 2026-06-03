@@ -9,7 +9,7 @@ import { usePosts } from "@/hooks/use-posts";
 import { useNotifications } from "@/hooks/use-notifications";
 
 export default function StudentDashboardPage() {
-  const { profile } = useAuthStore();
+  const { user } = useAuthStore();
   
   const { data: classes = [], isLoading: isLoadingClasses } = useClasses();
   // Fetch posts for all classes by passing empty string for classId.
@@ -29,7 +29,7 @@ export default function StudentDashboardPage() {
       <div className="hidden md:flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
         <div>
           <h2 className="font-headline-xl text-headline-xl text-primary tracking-tight">
-            Welcome back, {profile?.name?.split(" ")[0] || "Student"}!
+            Welcome back, {user?.name?.split(" ")[0] || "Student"}!
           </h2>
           <p className="font-body-lg text-body-lg text-on-surface-variant mt-2 max-w-2xl">
             Here&apos;s your current overview and recent class activity.

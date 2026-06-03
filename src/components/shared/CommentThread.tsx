@@ -7,7 +7,7 @@ import type { Comment } from "@/types";
 import ReportModal from "./ReportModal";
 
 export default function CommentThread({ postId, classId }: { postId: string; classId: string }) {
-  const { profile } = useAuthStore();
+  const { user } = useAuthStore();
   const { data: comments = [], isLoading } = useComments(postId);
   const { mutate: addComment, isPending: isAdding } = useAddComment(postId);
   const { mutate: deleteComment, isPending: isDeleting } = useDeleteComment(postId);
@@ -34,8 +34,8 @@ export default function CommentThread({ postId, classId }: { postId: string; cla
       {comments.length > 0 ? (
         <div className="flex flex-col gap-4">
           {comments.map((comment) => {
-            const isAuthor = profile?.id === comment.authorId;
-            const canDelete = isAuthor || profile?.role === "FACULTY";
+            const isAuthor = user?.id === comment.authorId;
+            const canDelete = isAuthor || user?.role === "FACULTY";
 
             return (
               <div key={comment.id} className="flex gap-3 group relative">
@@ -94,10 +94,10 @@ export default function CommentThread({ postId, classId }: { postId: string; cla
       {/* Add Comment Input */}
       <form onSubmit={handleSubmit} className="flex gap-3 mt-2">
         <div className="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold shrink-0 text-xs">
-          {profile?.avatarUrl ? (
-            <img src={profile.avatarUrl} alt={profile.name} className="w-full h-full rounded-full object-cover" />
+          {user?.avatarUrl ? (
+            <img src={user.avatarUrl} alt={user.name} className="w-full h-full rounded-full object-cover" />
           ) : (
-            profile?.name?.charAt(0).toUpperCase() || "U"
+            user?.name?.charAt(0).toUpperCase() || "U"
           )}
         </div>
         <div className="flex-1 flex gap-2">

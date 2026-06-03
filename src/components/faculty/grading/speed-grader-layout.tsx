@@ -1,7 +1,6 @@
 "use client";
 
-import React from "react";
-import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
+import React, { useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
@@ -29,6 +28,37 @@ export function SpeedGraderLayout({
   hasNext,
   hasPrev,
 }: SpeedGraderLayoutProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const leftPaneRef = useRef<HTMLDivElement>(null);
+  const isDragging = useRef(false);
+
+  // Native drag-to-resize handler — no third-party package needed
+  const handleDividerMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isDragging.current = true;
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+
+    const onMouseMove = (ev: MouseEvent) => {
+      if (!isDragging.current || !containerRef.current || !leftPaneRef.current) return;
+      const containerRect = containerRef.current.getBoundingClientRect();
+      const newLeftWidth = ((ev.clientX - containerRect.left) / containerRect.width) * 100;
+      // Clamp between 25% and 75%
+      leftPaneRef.current.style.width = `${Math.min(75, Math.max(25, newLeftWidth))}%`;
+    };
+
+    const onMouseUp = () => {
+      isDragging.current = false;
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+    };
+
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+  }, []);
+
   return (
     <div className="h-[calc(100vh-4rem)] w-full flex flex-col bg-surface-container-lowest overflow-hidden">
       {/* Top Header Bar */}
@@ -76,25 +106,29 @@ export function SpeedGraderLayout({
         </div>
       </header>
 
-      {/* Main Split Interface */}
-      <div className="flex-1 overflow-hidden">
-        <PanelGroup direction="horizontal">
-          <Panel defaultSize={65} minSize={30} className="bg-surface-container-lowest relative">
-            <div className="absolute inset-0 overflow-auto">
-              {leftPaneContent}
-            </div>
-          </Panel>
-          
-          <PanelResizeHandle className="w-1.5 bg-outline-variant/20 hover:bg-primary/50 transition-colors flex items-center justify-center cursor-col-resize z-10 group">
-            <div className="h-8 w-1 rounded-full bg-outline-variant/50 group-hover:bg-primary transition-colors" />
-          </PanelResizeHandle>
-          
-          <Panel defaultSize={35} minSize={20} className="bg-surface-container-low/30 relative border-l border-outline-variant/30 shadow-inner">
-             <div className="absolute inset-0 overflow-auto">
-               {rightPaneContent}
-             </div>
-          </Panel>
-        </PanelGroup>
+      {/* Main Split Interface — pure CSS flex, no third-party panels */}
+      <div ref={containerRef} className="flex-1 flex overflow-hidden">
+        {/* Left Pane */}
+        <div
+          ref={leftPaneRef}
+          style={{ width: "65%" }}
+          className="relative overflow-auto bg-surface-container-lowest"
+        >
+          {leftPaneContent}
+        </div>
+
+        {/* Drag Divider */}
+        <div
+          onMouseDown={handleDividerMouseDown}
+          className="w-1.5 flex-none bg-outline-variant/20 hover:bg-primary/50 active:bg-primary/70 transition-colors flex items-center justify-center cursor-col-resize z-10 group select-none"
+        >
+          <div className="h-8 w-1 rounded-full bg-outline-variant/50 group-hover:bg-primary transition-colors" />
+        </div>
+
+        {/* Right Pane */}
+        <div className="flex-1 relative overflow-auto bg-surface-container-low/30 border-l border-outline-variant/30 shadow-inner">
+          {rightPaneContent}
+        </div>
       </div>
     </div>
   );

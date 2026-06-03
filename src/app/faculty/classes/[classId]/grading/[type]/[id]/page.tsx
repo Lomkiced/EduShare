@@ -20,6 +20,31 @@ export default function GradingPage() {
   const { mutate: reviewSubmission, isPending: isReviewing } = useReviewSubmission();
 
   const [manualScore, setManualScore] = useState<string>("");
+  const [isFileDownloading, setIsFileDownloading] = useState(false);
+
+  const handleFileDownload = async (fileUrl: string, fileName: string) => {
+    if (isFileDownloading) return;
+    setIsFileDownloading(true);
+    try {
+      const response = await fetch(fileUrl);
+      if (!response.ok) throw new Error("Network response was not ok");
+      const blob = await response.blob();
+      const objectUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.style.display = "none";
+      a.href = objectUrl;
+      a.download = fileName || "submission";
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(objectUrl);
+      document.body.removeChild(a);
+    } catch (err) {
+      console.error("Download failed:", err);
+      toast.error("Failed to download file.");
+    } finally {
+      setIsFileDownloading(false);
+    }
+  };
 
   const currentIndex = queue.findIndex(item => item.id === id && item.type.toLowerCase() === type);
   const currentItem = queue[currentIndex];
@@ -95,11 +120,43 @@ export default function GradingPage() {
         );
       }
       return (
-        <iframe 
-          src={fileUrl} 
-          className="w-full h-full border-none bg-white"
-          title="Student Submission"
-        />
+        <div className="flex flex-col h-full w-full bg-surface-container-lowest">
+          <div className="p-4 border-b border-outline-variant/30 flex items-center justify-between bg-surface-container-low">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-outline">description</span>
+              <span className="font-label-md text-on-surface truncate max-w-[300px]">
+                {currentItem.details.fileName || "Student Submission"}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => handleFileDownload(fileUrl, currentItem.details.fileName || "submission")}
+              disabled={isFileDownloading}
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-on-primary rounded-lg font-label-md hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-70 disabled:cursor-wait"
+            >
+              <span className={`material-symbols-outlined text-[18px] ${isFileDownloading ? "animate-spin" : ""}`}>
+                {isFileDownloading ? "autorenew" : "download"}
+              </span>
+              {isFileDownloading ? "Downloading..." : "Download File"}
+            </button>
+          </div>
+          {/* Only render iframe for previewable files (PDF, images) to prevent auto-download of .docx files */}
+          {currentItem.details.fileName && ["pdf", "jpg", "jpeg", "png", "gif"].includes(currentItem.details.fileName.split('.').pop()?.toLowerCase() || "") ? (
+            <iframe 
+              src={fileUrl} 
+              className="w-full flex-1 border-none bg-white"
+              title="Student Submission"
+            />
+          ) : (
+            <div className="w-full flex-1 flex flex-col items-center justify-center bg-surface-container-lowest text-on-surface-variant p-8 text-center">
+              <span className="material-symbols-outlined text-[48px] mb-4 opacity-50">draft</span>
+              <h3 className="text-lg font-semibold text-on-surface mb-2">Preview Not Available</h3>
+              <p className="max-w-md">
+                This file format cannot be previewed directly in the browser. Please use the Download button above to view the student's submission natively on your device.
+              </p>
+            </div>
+          )}
+        </div>
       );
     }
 

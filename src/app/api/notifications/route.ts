@@ -43,3 +43,25 @@ export async function GET(request: NextRequest) {
     return errorResponse(ERRORS.INTERNAL.message, ERRORS.INTERNAL.status);
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const session = await getAuthSession();
+    if (!session) return errorResponse(ERRORS.UNAUTHORIZED.message, ERRORS.UNAUTHORIZED.status);
+
+    const { profile } = session;
+
+    // Hard delete ONLY notifications where isRead is true and belongs to the authenticated user.
+    const deleted = await prisma.notification.deleteMany({
+      where: {
+        userId: profile.id,
+        isRead: true,
+      },
+    });
+
+    return successResponse({ deletedCount: deleted.count });
+  } catch (error) {
+    console.error("[DELETE /api/notifications]", error);
+    return errorResponse(ERRORS.INTERNAL.message, ERRORS.INTERNAL.status);
+  }
+}

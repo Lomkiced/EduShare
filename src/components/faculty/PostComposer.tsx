@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useCreatePost } from "@/hooks/use-posts";
+import { useFileUpload } from "@/hooks/use-file-upload";
 
 interface PostComposerProps {
   classId: string;
@@ -13,11 +14,40 @@ export default function PostComposer({ classId }: PostComposerProps) {
   const [deadline, setDeadline] = useState("");
   const [isExpanded, setIsExpanded] = useState(false);
 
+  const [attachments, setAttachments] = useState<Array<{ fileName: string; fileUrl: string; fileType: string; fileSize: number }>>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { upload, isUploading } = useFileUpload({ bucket: "post-files" });
   const { mutate: createPost, isPending } = useCreatePost();
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const result = await upload(file);
+      if (result) {
+        setAttachments((prev) => [
+          ...prev,
+          {
+            fileName: file.name,
+            fileUrl: result.url,
+            fileType: file.type || "application/octet-stream",
+            fileSize: file.size,
+          },
+        ]);
+      }
+    }
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!content.trim()) return;
+    if (!content.trim() || isUploading) return;
 
     createPost(
       {
@@ -25,6 +55,7 @@ export default function PostComposer({ classId }: PostComposerProps) {
         content,
         isSubmissionPost: isSubmission,
         submissionDeadline: isSubmission && deadline ? new Date(deadline).toISOString() : null,
+        files: attachments,
       },
       {
         onSuccess: () => {
@@ -32,6 +63,7 @@ export default function PostComposer({ classId }: PostComposerProps) {
           setIsSubmission(false);
           setDeadline("");
           setIsExpanded(false);
+          setAttachments([]);
         },
       }
     );
@@ -80,12 +112,51 @@ export default function PostComposer({ classId }: PostComposerProps) {
               )}
             </div>
 
+            {/* Attachments List */}
+            {attachments.length > 0 && (
+              <div className="flex flex-col gap-2 mt-2 animate-in fade-in duration-300">
+                {attachments.map((file, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-2 rounded-lg border border-outline-variant/50 bg-surface-container-low/50">
+                    <div className="flex items-center gap-3 overflow-hidden">
+                      <span className="material-symbols-outlined text-outline">description</span>
+                      <span className="font-label-sm truncate text-on-surface">{file.fileName}</span>
+                      <span className="font-label-sm text-on-surface-variant">({Math.round(file.fileSize / 1024)} KB)</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setAttachments((prev) => prev.filter((_, i) => i !== idx))}
+                      className="text-outline hover:text-error transition-colors p-1 rounded-full"
+                      title="Remove attachment"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">close</span>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {/* Actions */}
             <div className="flex items-center justify-between mt-2">
               <div className="flex items-center gap-2 text-on-surface-variant">
-                <button type="button" className="p-2 hover:bg-surface-container-low rounded-full transition-colors" title="Attach File (Coming soon)">
+                <input
+                  type="file"
+                  multiple
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                  className="p-2 hover:bg-surface-container-low rounded-full transition-colors disabled:opacity-50"
+                  title="Attach File"
+                >
                   <span className="material-symbols-outlined">attach_file</span>
                 </button>
+                {isUploading && (
+                  <span className="font-label-sm text-primary animate-pulse">Uploading...</span>
+                )}
               </div>
 
               <div className="flex items-center gap-2">
@@ -95,15 +166,17 @@ export default function PostComposer({ classId }: PostComposerProps) {
                     setIsExpanded(false);
                     setContent("");
                     setIsSubmission(false);
+                    setDeadline("");
+                    setAttachments([]);
                   }}
-                  disabled={isPending}
-                  className="px-4 py-2 font-label-md text-on-surface-variant hover:bg-surface-container-low rounded-lg transition-colors"
+                  disabled={isPending || isUploading}
+                  className="px-4 py-2 font-label-md text-on-surface-variant hover:bg-surface-container-low rounded-lg transition-colors disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={!content.trim() || isPending}
+                  disabled={!content.trim() || isPending || isUploading}
                   className="px-5 py-2 font-label-md bg-primary text-on-primary rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-2 shadow-sm"
                 >
                   {isPending ? "Posting..." : "Post"}
