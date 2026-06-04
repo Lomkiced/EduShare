@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useAuthStore } from "@/store/auth.store";
 import { useComments, useAddComment, useDeleteComment } from "@/hooks/use-posts";
 import type { Comment } from "@/types";
+import Link from "next/link";
 import ReportModal from "./ReportModal";
 
 export default function CommentThread({ postId, classId }: { postId: string; classId: string }) {
@@ -39,21 +40,27 @@ export default function CommentThread({ postId, classId }: { postId: string; cla
 
             return (
               <div key={comment.id} className="flex gap-3 group relative">
-                <div className="w-8 h-8 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center font-bold shrink-0 text-xs">
+                <Link 
+                  href={user?.id === comment.authorId ? `/${user?.role.toLowerCase()}/profile` : `/${user?.role.toLowerCase()}/users/${comment.authorId}`}
+                  className="w-8 h-8 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center font-bold shrink-0 text-xs hover:ring-2 hover:ring-primary hover:ring-offset-1 transition-all cursor-pointer"
+                >
                   {comment.author.avatarUrl ? (
                     <img src={comment.author.avatarUrl} alt={comment.author.name} className="w-full h-full rounded-full object-cover" />
                   ) : (
                     comment.author.name.charAt(0).toUpperCase()
                   )}
-                </div>
+                </Link>
                 <div className="flex-1 min-w-0">
                   <div className="bg-surface-container-low rounded-2xl rounded-tl-sm px-4 py-3 inline-block">
-                    <p className="font-label-sm text-on-surface mb-1 flex items-center gap-2">
+                    <Link 
+                      href={user?.id === comment.authorId ? `/${user?.role.toLowerCase()}/profile` : `/${user?.role.toLowerCase()}/users/${comment.authorId}`}
+                      className="font-label-sm text-on-surface mb-1 flex items-center gap-2 hover:text-primary transition-colors hover:underline"
+                    >
                       {comment.author.name}
                       {comment.author.role === "FACULTY" && (
-                        <span className="text-[10px] uppercase font-bold text-primary tracking-wider">Faculty</span>
+                        <span className="text-[10px] uppercase font-bold text-primary tracking-wider no-underline">Faculty</span>
                       )}
-                    </p>
+                    </Link>
                     <p className="font-body-sm text-on-surface whitespace-pre-wrap">
                       {comment.content}
                     </p>

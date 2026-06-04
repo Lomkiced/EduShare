@@ -16,7 +16,7 @@ export default async function StudentLayout({ children }: { children: React.Reac
     <div className="bg-background text-on-background font-body-md min-h-screen flex">
       <AuthInitializer user={session.profile} />
       <StudentSidebar />
-      <main className="flex-1 flex flex-col min-w-0">
+      <main className="flex-1 flex flex-col min-w-0 overflow-x-clip">
         <StudentHeader />
         <div className="p-6 md:p-8 max-w-[1280px] mx-auto w-full flex-1 flex flex-col gap-8">
           {children}
