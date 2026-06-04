@@ -239,14 +239,6 @@ export default function AdminHeader() {
           )}
         </div>
 
-        <button className="w-10 h-10 rounded-full hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant transition-colors group">
-          <span
-            className="material-symbols-outlined group-hover:rotate-45 transition-transform duration-300"
-            style={{ fontVariationSettings: "'FILL' 0" }}
-          >
-            settings
-          </span>
-        </button>
 
         {/* Admin Avatar */}
         <div className="w-8 h-8 rounded-full bg-secondary-container text-on-secondary-container font-bold flex items-center justify-center ml-2 border border-surface-variant cursor-pointer hover:ring-2 hover:ring-secondary hover:ring-offset-2 hover:ring-offset-surface-container-lowest transition-all">

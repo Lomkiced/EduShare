@@ -319,6 +319,7 @@ function EditUserModal({
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   if (!user) return null;
 
@@ -377,30 +378,52 @@ function EditUserModal({
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-1">New Password</label>
-              <input 
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-primary"
-                placeholder="Enter new password (min 6 chars)"
-                required
-              />
+              <div className="relative">
+                <input 
+                  type={showPassword ? "text" : "password"}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full pl-3 pr-10 py-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-primary"
+                  placeholder="Enter new password (min 6 chars)"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-primary transition-colors flex items-center justify-center"
+                >
+                  <span className="material-symbols-outlined text-[20px]">
+                    {showPassword ? "visibility_off" : "visibility"}
+                  </span>
+                </button>
+              </div>
             </div>
 
             <div>
               <label className="block text-sm font-medium mb-1">Confirm Password</label>
-              <input 
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-1 ${
-                  confirmPassword.length > 0 && !passwordsMatch 
-                    ? "border-error focus:ring-error" 
-                    : "focus:ring-primary"
-                }`}
-                placeholder="Confirm your new password"
-                required
-              />
+              <div className="relative">
+                <input 
+                  type={showPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className={`w-full pl-3 pr-10 py-2 border rounded-md focus:outline-none focus:ring-1 ${
+                    confirmPassword.length > 0 && !passwordsMatch 
+                      ? "border-error focus:ring-error" 
+                      : "focus:ring-primary"
+                  }`}
+                  placeholder="Confirm your new password"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-primary transition-colors flex items-center justify-center"
+                >
+                  <span className="material-symbols-outlined text-[20px]">
+                    {showPassword ? "visibility_off" : "visibility"}
+                  </span>
+                </button>
+              </div>
               {confirmPassword.length > 0 && !passwordsMatch && (
                 <p className="text-xs text-error mt-1">Passwords do not match</p>
               )}
