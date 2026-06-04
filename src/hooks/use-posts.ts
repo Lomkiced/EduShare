@@ -117,9 +117,9 @@ export function useTogglePin(classId: string) {
       )
       return { previous }
     },
-    onError: (_, __, ctx) => {
+    onError: (err: Error, _, ctx) => {
       qc.setQueryData(["posts", classId], ctx?.previous)
-      toast.error("Failed to update pin status.")
+      toast.error(err.message || "Failed to update pin status.")
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: ["posts", classId] })

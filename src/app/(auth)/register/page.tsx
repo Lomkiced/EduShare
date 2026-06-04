@@ -39,12 +39,13 @@ export default function RegisterPage() {
       if (result.success) {
         toast.success("Registration successful! Please wait for your faculty to approve your account.", { duration: 6000 });
         router.push("/login");
+        return; // Early return keeps isSubmitting = true during route transition
       } else {
         toast.error(result.error || "Failed to create account.");
+        setIsSubmitting(false);
       }
     } catch (error) {
       toast.error("An unexpected error occurred.");
-    } finally {
       setIsSubmitting(false);
     }
   };
