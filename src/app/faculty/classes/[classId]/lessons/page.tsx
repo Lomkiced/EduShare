@@ -27,10 +27,12 @@ function CreateLessonModal({
   classId,
   open,
   onClose,
+  onSuccess,
 }: {
   classId: string;
   open:    boolean;
   onClose: () => void;
+  onSuccess: (lesson: Lesson) => void;
 }) {
   const [step,           setStep]           = useState<1 | 2>(1);
   const [title,          setTitle]          = useState("");
@@ -91,10 +93,13 @@ function CreateLessonModal({
           isPublished,
         },
         {
-          onSuccess: () => {
+          onSuccess: (newLesson) => {
             onClose();
             resetForm();
             resetUpload();
+            if (newLesson) {
+              onSuccess(newLesson);
+            }
           },
         }
       );
@@ -477,6 +482,10 @@ export default function FacultyLessonsPage() {
         classId={classId}
         open={showCreateModal}
         onClose={() => setShowCreateModal(false)}
+        onSuccess={(newLesson) => {
+          setSelectedLesson(newLesson);
+          setPanelMode("assessment");
+        }}
       />
     </div>
   );
