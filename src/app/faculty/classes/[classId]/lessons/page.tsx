@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Plus, Video, BookOpen, AlertTriangle, GraduationCap } from "lucide-react";
 import { useLessons, useCreateLesson } from "@/hooks/use-lessons";
@@ -381,6 +381,16 @@ export default function FacultyLessonsPage() {
   const [panelMode,       setPanelMode]        = useState<"assessment" | null>(null);
 
   const typedLessons = lessons as Lesson[];
+
+  // Keep selectedLesson in sync with the real-time cache
+  useEffect(() => {
+    if (selectedLesson) {
+      const updated = typedLessons.find((l) => l.id === selectedLesson.id);
+      if (updated && JSON.stringify(updated.assessment) !== JSON.stringify(selectedLesson.assessment)) {
+        setSelectedLesson(updated);
+      }
+    }
+  }, [typedLessons, selectedLesson]);
 
   if (isLoading) {
     return (

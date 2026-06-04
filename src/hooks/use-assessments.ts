@@ -69,7 +69,7 @@ export function useCreateAssessment(lessonId: string) {
       showResults?:     boolean;
     }) => apiClient.post<Assessment>("/api/assessments", data),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["lessons", "detail", lessonId] });
+      qc.invalidateQueries({ queryKey: ["lessons"] });
       toast.success("Assessment created!");
     },
     onError: (err: Error) => toast.error(err.message),
@@ -90,6 +90,7 @@ export function useUpdateAssessment(assessmentId: string) {
     }>) => apiClient.patch<Assessment>(`/api/assessments/${assessmentId}`, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["assessments", assessmentId] });
+      qc.invalidateQueries({ queryKey: ["lessons"] });
       toast.success("Assessment settings updated.");
     },
     onError: (err: Error) => toast.error(err.message),
@@ -102,7 +103,7 @@ export function useDeleteAssessment(lessonId: string) {
     mutationFn: (assessmentId: string) =>
       apiClient.delete(`/api/assessments/${assessmentId}`),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["lessons", "detail", lessonId] });
+      qc.invalidateQueries({ queryKey: ["lessons"] });
       toast.success("Assessment deleted.");
     },
     onError: (err: Error) => toast.error(err.message),
@@ -121,6 +122,7 @@ export function useCreateQuestion(assessmentId: string) {
       ),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["assessments", assessmentId, "questions"] });
+      qc.invalidateQueries({ queryKey: ["lessons"] });
       toast.success("Question added.");
     },
     onError: (err: Error) => toast.error(err.message),
@@ -157,6 +159,7 @@ export function useDeleteQuestion(assessmentId: string) {
       ),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["assessments", assessmentId, "questions"] });
+      qc.invalidateQueries({ queryKey: ["lessons"] });
       toast.success("Question deleted.");
     },
     onError: (err: Error) => toast.error(err.message),
