@@ -19,6 +19,10 @@ export default function FacultySidebar() {
     { label: "My Sections", icon: "school", href: "/faculty/classes" },
   ];
 
+  const footerItems = [
+    { label: "Profile", icon: "account_circle", href: "/faculty/profile" },
+  ];
+
   const handleLogout = async () => {
     await logoutAction();
     router.push("/login");
@@ -75,6 +79,31 @@ export default function FacultySidebar() {
 
       {/* Footer Navigation */}
       <div className="mt-auto border-t border-slate-200 pt-4 flex flex-col gap-1">
+        {footerItems.map((item) => {
+          const isActive = item.href === "/faculty/profile" 
+            ? pathname === item.href 
+            : pathname.startsWith(item.href);
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={close}
+              className={`flex items-center gap-2 px-3 py-2 transition-all duration-200 ${
+                isActive
+                  ? "bg-white text-blue-900 font-bold border-r-4 border-blue-900 rounded-l-lg hover:bg-slate-100 focus:ring-2 focus:ring-blue-500/20"
+                  : "text-slate-500 hover:text-blue-900 rounded-lg hover:bg-slate-100 focus:ring-2 focus:ring-blue-500/20"
+              }`}
+            >
+              <span
+                className="material-symbols-outlined"
+                style={{ fontVariationSettings: "'FILL' 0" }}
+              >
+                {item.icon}
+              </span>
+              {item.label}
+            </Link>
+          );
+        })}
         <button
           onClick={handleLogout}
           className="flex items-center gap-2 px-3 py-2 text-slate-500 hover:text-error hover:bg-error-container/20 rounded-lg transition-all duration-200 focus:ring-2 focus:ring-error/20 w-full text-left"

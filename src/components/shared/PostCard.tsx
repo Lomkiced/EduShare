@@ -7,6 +7,7 @@ import { useSubmissions, useSubmitFile, useUnsubmit } from "@/hooks/use-submissi
 import { useFileUpload } from "@/hooks/use-file-upload";
 import { toast } from "sonner";
 import type { Post } from "@/types";
+import Link from "next/link";
 import CommentThread from "./CommentThread";
 import ReportModal from "./ReportModal";
 import {
@@ -315,22 +316,28 @@ export default function PostCard({ post, isFacultyView = false }: PostCardProps)
         <div className={`p-5 md:p-6 ${post.isPinned || post.isSubmissionPost ? "pt-8" : ""}`}>
           <div className="flex justify-between items-start mb-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold">
+              <Link 
+                href={user?.id === post.authorId ? `/${user?.role.toLowerCase()}/profile` : `/${user?.role.toLowerCase()}/users/${post.authorId}`}
+                className="w-10 h-10 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold hover:ring-2 hover:ring-primary hover:ring-offset-2 transition-all cursor-pointer shrink-0"
+              >
                 {post.author.avatarUrl ? (
                   <img src={post.author.avatarUrl} alt={post.author.name} className="w-full h-full rounded-full object-cover" />
                 ) : (
                   post.author.name.charAt(0).toUpperCase()
                 )}
-              </div>
+              </Link>
               <div>
-                <p className="font-label-md text-on-surface flex items-center gap-2">
+                <Link 
+                  href={user?.id === post.authorId ? `/${user?.role.toLowerCase()}/profile` : `/${user?.role.toLowerCase()}/users/${post.authorId}`}
+                  className="font-label-md text-on-surface flex items-center gap-2 hover:text-primary transition-colors hover:underline"
+                >
                   {post.author.name}
                   {post.author.role === "FACULTY" && (
-                    <span className="bg-primary-fixed text-primary px-2 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-wider">
+                    <span className="bg-primary-fixed text-primary px-2 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-wider no-underline">
                       Faculty
                     </span>
                   )}
-                </p>
+                </Link>
                 <div className="flex flex-col gap-0.5">
                   <p className="font-label-sm text-on-surface-variant">
                     {new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(post.createdAt))}
