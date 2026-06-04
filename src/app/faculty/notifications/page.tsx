@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useNotifications, useMarkNotificationsRead } from "@/hooks/use-notifications";
+import { useNotifications, useMarkNotificationsRead, useClearReadNotifications } from "@/hooks/use-notifications";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
@@ -11,9 +11,12 @@ export default function FacultyNotificationsPage() {
   const { data: notifData, isLoading } = useNotifications();
   const notifications = notifData?.notifications || [];
   const { mutate: markRead } = useMarkNotificationsRead();
+  const { mutate: clearRead } = useClearReadNotifications();
+
+  const unreadCount = notifications.filter((n: any) => !n.isRead).length;
 
   const handleMarkAllRead = () => {
-    const unreadIds = notifications.filter((n) => !n.isRead).map((n) => n.id);
+    const unreadIds = notifications.filter((n: any) => !n.isRead).map((n: any) => n.id);
     if (unreadIds.length > 0) markRead(unreadIds);
   };
 
@@ -33,10 +36,27 @@ export default function FacultyNotificationsPage() {
           <h1 className="text-3xl font-bold text-on-surface tracking-tight mb-2">Notifications</h1>
           <p className="text-on-surface-variant text-lg">Activity from your classes.</p>
         </div>
-        <Button onClick={handleMarkAllRead} variant="outline" className="border-outline-variant/50 hover:bg-surface-container text-on-surface shadow-sm">
-          <span className="material-symbols-outlined text-[18px] mr-2">done_all</span>
-          Mark all as read
-        </Button>
+        <div className="flex flex-col sm:flex-row items-center gap-3">
+          <Button 
+            onClick={() => clearRead()}
+            disabled={unreadCount > 0 || notifications.length === 0}
+            variant="outline" 
+            className="w-full sm:w-auto border-error/20 text-error hover:bg-error-container/20 shadow-sm disabled:opacity-50 disabled:text-on-surface-variant disabled:border-outline-variant/50 disabled:hover:bg-transparent"
+            title={unreadCount > 0 ? "You must read all notifications before clearing." : "Clear all notifications"}
+          >
+            <span className="material-symbols-outlined text-[18px] mr-2">delete</span>
+            Clear all
+          </Button>
+          <Button 
+            onClick={handleMarkAllRead} 
+            disabled={unreadCount === 0 || notifications.length === 0}
+            variant="outline" 
+            className="w-full sm:w-auto border-outline-variant/50 hover:bg-surface-container text-on-surface shadow-sm disabled:opacity-50"
+          >
+            <span className="material-symbols-outlined text-[18px] mr-2">done_all</span>
+            Mark all as read
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (

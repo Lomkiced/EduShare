@@ -32,11 +32,6 @@ export async function PATCH(
 
     const { userId } = params;
 
-    // Prevent self-deactivation
-    if (userId === session.profile.id) {
-      return errorResponse("You cannot deactivate your own account.", 400);
-    }
-
     const body = await request.json();
     const parsed = adminUpdateUserSchema.safeParse(body);
     if (!parsed.success) {
@@ -44,6 +39,11 @@ export async function PATCH(
     }
 
     const { isActive, password } = parsed.data;
+
+    // Prevent self-deactivation (only block if they are explicitly setting isActive to false)
+    if (userId === session.profile.id && isActive === false) {
+      return errorResponse("You cannot deactivate your own account.", 400);
+    }
 
     // Fetch target user for security checks
     const targetUser = await prisma.user.findUnique({
