@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname, useRouter, useParams } from "next/navigation";
 import { useStudentSidebarStore } from "@/store/sidebarStore";
 import { logoutAction } from "@/lib/actions/auth";
-import { useNotifications } from "@/hooks/use-notifications";
 import { useClasses } from "@/hooks/use-class";
 
 const footerItems = [
@@ -18,9 +17,6 @@ export default function StudentSidebar() {
   const params = useParams();
   const { isOpen, close } = useStudentSidebarStore();
   const [joinModalOpen, setJoinModalOpen] = useState(false);
-  
-  const { data: notificationsData } = useNotifications();
-  const unreadCount = notificationsData?.unreadCount ?? 0;
 
   const { data: classes = [] } = useClasses();
   const firstClassId = classes.length > 0 ? classes[0].id : null;
@@ -29,7 +25,6 @@ export default function StudentSidebar() {
   const navItems = [
     { label: "Dashboard", icon: "dashboard", href: "/student/dashboard" },
     { label: "My Section", icon: "school", href: mySectionHref },
-    { label: "Notifications", icon: "notifications", href: "/student/notifications" },
   ];
 
   const handleLogout = async () => {
@@ -81,8 +76,6 @@ export default function StudentSidebar() {
             isActive = pathname.startsWith(item.href);
           }
           
-          const isNotifications = item.label === "Notifications";
-
           return (
             <Link
               key={item.href}
@@ -101,11 +94,6 @@ export default function StudentSidebar() {
                 {item.icon}
               </span>
               {item.label}
-              {isNotifications && unreadCount > 0 && (
-                <span className="ml-auto bg-error text-on-error text-[10px] font-bold px-[6px] py-[2px] rounded-full leading-none">
-                  {unreadCount}
-                </span>
-              )}
             </Link>
           );
         })}
