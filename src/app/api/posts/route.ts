@@ -66,6 +66,14 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Optional filter: ?isSubmission=false hides assignment posts (used by Feed views)
+    const isSubmissionParam = request.nextUrl.searchParams.get("isSubmission");
+    if (isSubmissionParam === "false") {
+      whereClause.isSubmissionPost = false;
+    } else if (isSubmissionParam === "true") {
+      whereClause.isSubmissionPost = true;
+    }
+
     const posts = await prisma.post.findMany({
       where: whereClause,
       include: {
@@ -169,10 +177,11 @@ export async function POST(request: NextRequest) {
         });
         const studentIds = memberships.map((m) => m.studentId);
         const preview = content.length > 60 ? content.slice(0, 60) + "..." : content;
+        const notificationType = isSubmissionPost ? "NEW_ASSIGNMENT" : "NEW_POST";
         await createBulkNotifications(
           studentIds,
-          "NEW_POST",
-          `New post in "${cls.name}": "${preview}"`,
+          notificationType,
+          `New ${isSubmissionPost ? "assignment" : "post"} in "${cls.name}": "${preview}"`,
           post.id
         );
       } else if (profile.role === "STUDENT") {

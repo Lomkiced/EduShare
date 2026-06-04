@@ -16,6 +16,16 @@ export function usePosts(classId: string) {
   });
 }
 
+/** Feed-only variant: strips assignment posts at the DB level. */
+export function useFeedPosts(classId: string) {
+  return useQuery({
+    queryKey: ["posts", classId, "feed"],
+    queryFn:  () => apiClient.get<Post[]>(`/api/posts?classId=${classId}&isSubmission=false`),
+    enabled:  !!classId,
+    refetchInterval: 30_000,
+  });
+}
+
 export function usePost(postId: string) {
   return useQuery({
     queryKey: ["posts", "detail", postId],

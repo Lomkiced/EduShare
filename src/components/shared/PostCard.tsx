@@ -2,13 +2,24 @@
 
 import React, { useState } from "react";
 import { useAuthStore } from "@/store/auth.store";
-import { useTogglePin, useDeletePost } from "@/hooks/use-posts";
+import { useTogglePin, useDeletePost, useUpdatePost } from "@/hooks/use-posts";
 import { useSubmissions, useSubmitFile } from "@/hooks/use-submissions";
 import { useFileUpload } from "@/hooks/use-file-upload";
 import { toast } from "sonner";
 import type { Post } from "@/types";
 import CommentThread from "./CommentThread";
 import ReportModal from "./ReportModal";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface PostCardProps {
   post: Post;
@@ -256,16 +267,26 @@ export default function PostCard({ post, isFacultyView = false }: PostCardProps)
   const { user } = useAuthStore();
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState(post.content);
 
   const { mutate: togglePin } = useTogglePin(post.classId);
   const { mutate: deletePost } = useDeletePost(post.classId);
+  const { mutate: updatePost, isPending: isUpdating } = useUpdatePost(post.id, post.classId);
 
   const isAuthor = user?.id === post.authorId;
   const canPin = user?.role === "FACULTY";
 
+  const handleEditSubmit = () => {
+    if (!editContent.trim()) return;
+    updatePost({ content: editContent }, {
+      onSuccess: () => setIsEditing(false)
+    });
+  };
+
   return (
     <>
-      <div className="bg-surface-container-lowest rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.04)] border border-outline-variant/30 flex flex-col relative overflow-hidden transition-all duration-300 hover:shadow-md">
+      <div id={`post-${post.id}`} className="bg-surface-container-lowest rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.04)] border border-outline-variant/30 flex flex-col relative overflow-hidden transition-all duration-300 hover:shadow-md">
         {post.isPinned && (
           <div className="bg-secondary text-on-secondary text-[10px] font-bold uppercase tracking-wider px-3 py-1 self-start rounded-br-lg absolute top-0 left-0 z-10 flex items-center gap-1">
             <span className="material-symbols-outlined text-[12px]">push_pin</span>
@@ -273,7 +294,14 @@ export default function PostCard({ post, isFacultyView = false }: PostCardProps)
           </div>
         )}
 
-        <div className={`p-5 md:p-6 ${post.isPinned ? "pt-8" : ""}`}>
+        {post.isSubmissionPost && (
+          <div className="bg-primary text-on-primary text-[10px] font-bold uppercase tracking-wider px-3 py-1 self-start rounded-bl-lg absolute top-0 right-0 z-10 flex items-center gap-1 shadow-sm">
+            <span className="material-symbols-outlined text-[12px]">assignment</span>
+            Assignment
+          </div>
+        )}
+
+        <div className={`p-5 md:p-6 ${post.isPinned || post.isSubmissionPost ? "pt-8" : ""}`}>
           <div className="flex justify-between items-start mb-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold">
@@ -292,9 +320,17 @@ export default function PostCard({ post, isFacultyView = false }: PostCardProps)
                     </span>
                   )}
                 </p>
-                <p className="font-label-sm text-on-surface-variant">
-                  {new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(post.createdAt))}
-                </p>
+                <div className="flex flex-col gap-0.5">
+                  <p className="font-label-sm text-on-surface-variant">
+                    {new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(post.createdAt))}
+                  </p>
+                  {post.isSubmissionPost && post.submissionDeadline && (
+                    <p className="font-label-sm text-primary font-medium flex items-center gap-1 mt-0.5">
+                      <span className="material-symbols-outlined text-[14px]">event</span>
+                      Due: {new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(post.submissionDeadline))}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -309,7 +345,7 @@ export default function PostCard({ post, isFacultyView = false }: PostCardProps)
                 </button>
               )}
               
-              {!isAuthor && (
+              {!isAuthor && user?.role === "STUDENT" && (
                 <button
                   onClick={() => setIsReportOpen(true)}
                   className="p-2 rounded-full text-outline hover:text-error hover:bg-error-container/30 transition-colors"
@@ -319,25 +355,79 @@ export default function PostCard({ post, isFacultyView = false }: PostCardProps)
                 </button>
               )}
 
-              {(isAuthor || canPin) && (
-                <button
-                  onClick={() => {
-                    if (confirm("Are you sure you want to delete this post?")) {
-                      deletePost(post.id);
-                    }
-                  }}
-                  className="p-2 rounded-full text-outline hover:text-error hover:bg-error-container/30 transition-colors"
-                  title="Delete Post"
-                >
-                  <span className="material-symbols-outlined text-[20px]">delete</span>
-                </button>
+              {(isAuthor || canPin || isFacultyView) && (
+                <>
+                  <button
+                    onClick={() => setIsEditing(!isEditing)}
+                    className="p-2 rounded-full text-outline hover:text-primary hover:bg-primary-container/30 transition-colors"
+                    title="Edit Post"
+                  >
+                    <span className="material-symbols-outlined text-[20px]">edit</span>
+                  </button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <button
+                        className="p-2 rounded-full text-outline hover:text-error hover:bg-error-container/30 transition-colors"
+                        title="Delete Post"
+                      >
+                        <span className="material-symbols-outlined text-[20px]">delete</span>
+                      </button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This action cannot be undone. This will permanently delete the post
+                          and remove any associated attachments and submissions from the server.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => deletePost(post.id)}
+                          className="bg-error text-on-error hover:bg-error/90"
+                        >
+                          Delete Post
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </>
               )}
             </div>
           </div>
 
-          <div className="font-body-md text-on-surface mb-6 whitespace-pre-wrap leading-relaxed">
-            {post.content}
-          </div>
+          {isEditing ? (
+            <div className="mb-6 animate-in fade-in slide-in-from-top-2 duration-300">
+              <textarea
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                className="w-full bg-surface-container-low p-4 rounded-xl resize-none outline-none focus:ring-2 focus:ring-primary/50 font-body-md text-on-surface border border-outline-variant/50 transition-all"
+                rows={4}
+                autoFocus
+              />
+              <div className="flex justify-end gap-2 mt-2">
+                <button 
+                  onClick={() => setIsEditing(false)} 
+                  disabled={isUpdating}
+                  className="px-4 py-2 font-label-md text-on-surface-variant hover:bg-surface-container rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleEditSubmit} 
+                  disabled={isUpdating || !editContent.trim()} 
+                  className="px-4 py-2 bg-primary text-on-primary rounded-lg font-label-md hover:bg-primary/90 transition-colors disabled:opacity-50"
+                >
+                  {isUpdating ? "Saving..." : "Save"}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="font-body-md text-on-surface mb-6 whitespace-pre-wrap leading-relaxed">
+              {post.content}
+            </div>
+          )}
 
           {post.files && post.files.length > 0 && (
             <div className="flex flex-col gap-2 mb-6">
@@ -348,27 +438,20 @@ export default function PostCard({ post, isFacultyView = false }: PostCardProps)
           )}
 
           {post.isSubmissionPost && (
-            <div className="mb-6 flex flex-col gap-4">
-              <div className="bg-primary-container/20 border border-primary/20 rounded-lg p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div>
-                  <p className="font-label-md text-primary flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[18px]">assignment</span>
-                    Assignment Submission
-                  </p>
-                  <p className="font-label-sm text-on-surface-variant mt-1">
-                    Due: {post.submissionDeadline ? new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(post.submissionDeadline)) : "No deadline"}
-                  </p>
-                </div>
-                {isFacultyView && (
+            <div className="mb-6 flex flex-col gap-4 bg-surface-container/30 border border-outline-variant/30 rounded-lg p-4">
+              {isFacultyView ? (
+                <div className="flex justify-between items-center">
+                  <span className="font-label-md text-on-surface-variant">Faculty Grading</span>
                   <a
                     href={`/faculty/classes/${post.classId}/submissions?postId=${post.id}`}
                     className="bg-primary text-on-primary px-4 py-2 rounded-lg font-label-md text-label-md hover:bg-primary/90 transition-colors shadow-sm whitespace-nowrap"
                   >
                     View Submissions
                   </a>
-                )}
-              </div>
-              {!isFacultyView && <StudentSubmissionSection postId={post.id} deadline={post.submissionDeadline} />}
+                </div>
+              ) : (
+                <StudentSubmissionSection postId={post.id} deadline={post.submissionDeadline} />
+              )}
             </div>
           )}
         </div>

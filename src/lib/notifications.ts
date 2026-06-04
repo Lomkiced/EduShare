@@ -12,6 +12,7 @@ import prisma from "@/lib/prisma";
 
 export type NotificationType =
   | "NEW_POST"
+  | "NEW_ASSIGNMENT"
   | "NEW_COMMENT"
   | "NEW_SUBMISSION"
   | "SUBMISSION_REVIEWED"

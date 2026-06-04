@@ -10,8 +10,6 @@ interface PostComposerProps {
 
 export default function PostComposer({ classId }: PostComposerProps) {
   const [content, setContent] = useState("");
-  const [isSubmission, setIsSubmission] = useState(false);
-  const [deadline, setDeadline] = useState("");
   const [isExpanded, setIsExpanded] = useState(false);
 
   const [attachments, setAttachments] = useState<Array<{ fileName: string; fileUrl: string; fileType: string; fileSize: number }>>([]);
@@ -53,15 +51,13 @@ export default function PostComposer({ classId }: PostComposerProps) {
       {
         classId,
         content,
-        isSubmissionPost: isSubmission,
-        submissionDeadline: isSubmission && deadline ? new Date(deadline).toISOString() : null,
+        isSubmissionPost: false,
+        submissionDeadline: null,
         files: attachments,
       },
       {
         onSuccess: () => {
           setContent("");
-          setIsSubmission(false);
-          setDeadline("");
           setIsExpanded(false);
           setAttachments([]);
         },
@@ -86,32 +82,6 @@ export default function PostComposer({ classId }: PostComposerProps) {
 
         {isExpanded && (
           <div className="mt-4 pt-4 border-t border-outline-variant/30 flex flex-col gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
-            {/* Options */}
-            <div className="flex flex-wrap items-center gap-4">
-              <label className="flex items-center gap-2 cursor-pointer font-label-md text-on-surface-variant hover:text-primary transition-colors">
-                <input
-                  type="checkbox"
-                  checked={isSubmission}
-                  onChange={(e) => setIsSubmission(e.target.checked)}
-                  className="rounded border-outline-variant text-primary focus:ring-primary"
-                />
-                <span className="material-symbols-outlined text-[18px]">assignment</span>
-                Requires Submission
-              </label>
-
-              {isSubmission && (
-                <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2 duration-300">
-                  <span className="material-symbols-outlined text-on-surface-variant text-[18px]">schedule</span>
-                  <input
-                    type="datetime-local"
-                    value={deadline}
-                    onChange={(e) => setDeadline(e.target.value)}
-                    className="bg-surface-container-low border border-outline-variant/50 rounded-lg px-3 py-1.5 font-body-sm text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none"
-                  />
-                </div>
-              )}
-            </div>
-
             {/* Attachments List */}
             {attachments.length > 0 && (
               <div className="flex flex-col gap-2 mt-2 animate-in fade-in duration-300">
@@ -165,8 +135,6 @@ export default function PostComposer({ classId }: PostComposerProps) {
                   onClick={() => {
                     setIsExpanded(false);
                     setContent("");
-                    setIsSubmission(false);
-                    setDeadline("");
                     setAttachments([]);
                   }}
                   disabled={isPending || isUploading}

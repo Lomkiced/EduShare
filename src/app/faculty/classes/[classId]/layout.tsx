@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useParams } from "next/navigation";
 import { useClass } from "@/hooks/use-class";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MessageSquare, FileText, Users, ArrowLeft, Video, BookOpen } from "lucide-react";
+import { MessageSquare, FileText, Users, ArrowLeft, Video, BookOpen, ClipboardList } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
@@ -19,6 +19,7 @@ export default function ClassLayout({ children }: { children: React.ReactNode })
   const tabs = [
     { label: "Feed", href: `/faculty/classes/${classId}/feed`, icon: MessageSquare },
     { label: "Lessons", href: `/faculty/classes/${classId}/lessons`, icon: Video },
+    { label: "Assignments", href: `/faculty/classes/${classId}/assignments`, icon: ClipboardList },
     { label: "Submissions", href: `/faculty/classes/${classId}/submissions`, icon: FileText },
     { label: "Gradebook", href: `/faculty/classes/${classId}/gradebook`, icon: BookOpen },
     { label: "Members", href: `/faculty/classes/${classId}/members`, icon: Users },

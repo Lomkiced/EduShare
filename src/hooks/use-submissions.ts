@@ -74,8 +74,16 @@ export function useGradebook(classId: string) {
 
 export function useStudentGrades(classId: string) {
   return useQuery({
-    queryKey: ["student-grades", classId],
+    queryKey: ["grades", classId],
     queryFn: () => apiClient.get<any>(`/api/student/classes/${classId}/grades`),
+    enabled: !!classId,
+  });
+}
+
+export function useUpcomingDeadlines(classId: string) {
+  return useQuery({
+    queryKey: ["upcoming-deadlines", classId],
+    queryFn: () => apiClient.get<any[]>(`/api/student/classes/${classId}/upcoming-deadlines`),
     enabled: !!classId,
   });
 }
