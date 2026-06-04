@@ -46,12 +46,13 @@ export default function LoginPage() {
             router.push("/student/dashboard");
             break;
         }
+        return; // Early return keeps isSubmitting = true during route transition
       } else {
         toast.error(result.error || "Login failed.");
+        setIsSubmitting(false);
       }
     } catch (error) {
       toast.error("An unexpected error occurred.");
-    } finally {
       setIsSubmitting(false);
     }
   };
@@ -104,7 +105,7 @@ export default function LoginPage() {
         <LoadingButton
           type="submit"
           isLoading={isSubmitting}
-          loadingText="Signing in..."
+          loadingText="Authenticating..."
           variant="primary"
           className="group w-full py-[14px] px-[20px] rounded-xl font-bold shadow-md hover:shadow-xl hover:bg-primary-container hover:text-on-primary-container focus:ring-4 focus:ring-primary/20 transition-all duration-300 mt-8 relative overflow-hidden"
         >
