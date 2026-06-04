@@ -7,8 +7,9 @@ import * as z from "zod";
 import { toast } from "sonner";
 import type { User } from "@prisma/client";
 import { Loader2 } from "lucide-react";
+import { useAuthStore } from "@/store/auth.store";
 
-import { updateProfile } from "../actions";
+import { updateProfile } from "@/lib/actions/profile";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -33,6 +34,7 @@ interface ProfileFormProps {
 
 export function ProfileForm({ user }: ProfileFormProps) {
   const [isPending, startTransition] = useTransition();
+  const setUser = useAuthStore((state) => state.setUser);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -45,7 +47,8 @@ export function ProfileForm({ user }: ProfileFormProps) {
     startTransition(async () => {
       const result = await updateProfile(data);
 
-      if (result.success) {
+      if (result.success && result.user) {
+        setUser(result.user);
         toast.success("Profile updated successfully");
       } else {
         toast.error(result.error || "Failed to update profile");

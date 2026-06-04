@@ -7,7 +7,7 @@ import * as z from "zod";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
-import { updatePassword } from "../actions";
+import { updatePassword } from "@/lib/actions/profile";
 import { Button } from "@/components/ui/button";
 import {
   Form,
