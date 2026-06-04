@@ -5,7 +5,7 @@ import { useParams, useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 import {
   Trophy, X, CheckCircle, XCircle,
-  ArrowLeft, RefreshCw, ChevronDown, ChevronUp,
+  ArrowLeft, RefreshCw, ChevronDown, ChevronUp, Clock
 } from "lucide-react";
 import Link from "next/link";
 import { useAttemptSession, useAttemptHistory } from "@/hooks/use-assessments";
@@ -47,6 +47,7 @@ export default function AssessmentResultsPage() {
   const score        = attempt.score ?? 0;
   const passingScore = lesson?.assessment?.passingScore ?? 75;
   const passed       = attempt.status === "PASSED";
+  const isPending    = attempt.status === "IN_PROGRESS";
 
   const circumference = 2 * Math.PI * 52;
   const dashOffset    = circumference - (score / 100) * circumference;
@@ -67,7 +68,9 @@ export default function AssessmentResultsPage() {
       {/* Score card */}
       <div className={cn(
         "rounded-2xl p-6 mb-6 border",
-        passed
+        isPending 
+          ? "bg-gradient-to-br from-amber-50 to-yellow-50 border-amber-200"
+          : passed
           ? "bg-gradient-to-br from-green-50 to-emerald-50 border-green-200"
           : "bg-gradient-to-br from-red-50 to-rose-50 border-red-200"
       )}>
@@ -76,9 +79,9 @@ export default function AssessmentResultsPage() {
           <div className="relative flex-shrink-0">
             <svg width={120} height={120} className="-rotate-90">
               <circle cx={60} cy={60} r={52} fill="none"
-                stroke={passed ? "#dcfce7" : "#fee2e2"} strokeWidth={8} />
+                stroke={isPending ? "#fef3c7" : passed ? "#dcfce7" : "#fee2e2"} strokeWidth={8} />
               <circle cx={60} cy={60} r={52} fill="none"
-                stroke={passed ? "#16a34a" : "#dc2626"} strokeWidth={8}
+                stroke={isPending ? "#d97706" : passed ? "#16a34a" : "#dc2626"} strokeWidth={8}
                 strokeDasharray={circumference}
                 strokeDashoffset={dashOffset}
                 strokeLinecap="round"
@@ -86,8 +89,8 @@ export default function AssessmentResultsPage() {
               />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-3xl font-bold" style={{ color: passed ? "#16a34a" : "#dc2626" }}>
-                {score.toFixed(0)}%
+              <span className="text-3xl font-bold" style={{ color: isPending ? "#d97706" : passed ? "#16a34a" : "#dc2626" }}>
+                {isPending ? "?" : `${score.toFixed(0)}%`}
               </span>
             </div>
           </div>
@@ -95,19 +98,30 @@ export default function AssessmentResultsPage() {
           {/* Result text */}
           <div className="text-center sm:text-left">
             <div className="flex items-center gap-2 justify-center sm:justify-start mb-1">
-              {passed ? (
+              {isPending ? (
+                <Clock className="w-6 h-6 text-amber-600" />
+              ) : passed ? (
                 <Trophy className="w-6 h-6 text-green-600" />
               ) : (
                 <XCircle className="w-6 h-6 text-red-600" />
               )}
-              <h2 className="text-2xl font-bold" style={{ color: passed ? "#16a34a" : "#dc2626" }}>
-                {passed ? "Passed!" : "Not Passed"}
+              <h2 className="text-2xl font-bold" style={{ color: isPending ? "#d97706" : passed ? "#16a34a" : "#dc2626" }}>
+                {isPending ? "Pending Review" : passed ? "Passed!" : "Not Passed"}
               </h2>
             </div>
-            <p className="text-sm text-on-surface-variant">
-              You scored <strong>{score.toFixed(1)}%</strong> · Passing: {passingScore}%
-            </p>
-            <p className="text-sm text-on-surface-variant mt-0.5">
+            
+            {isPending ? (
+              <p className="text-sm text-on-surface-variant max-w-sm mt-1">
+                Your assessment contains questions that require manual grading by your instructor. 
+                Check back later for your final score.
+              </p>
+            ) : (
+              <p className="text-sm text-on-surface-variant">
+                You scored <strong>{score.toFixed(1)}%</strong> · Passing: {passingScore}%
+              </p>
+            )}
+            
+            <p className="text-sm text-on-surface-variant mt-2">
               Attempt {attempt.attemptNumber} of{" "}
               {lesson?.assessment?.maxAttempts === 0
                 ? "unlimited"
