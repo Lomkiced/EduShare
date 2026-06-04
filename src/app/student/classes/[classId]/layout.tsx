@@ -52,8 +52,8 @@ export default function StudentClassLayout({ children }: { children: React.React
   return (
     <div className="min-h-screen flex flex-col bg-surface">
       {/* Top Header */}
-      <header className="bg-surface-container-lowest border-b border-outline-variant/30 sticky top-16 z-10">
-        <div className="max-w-[1600px] mx-auto px-6 md:px-8 pt-6">
+      <header className="bg-surface pt-6">
+        <div className="max-w-[1600px] mx-auto px-6 md:px-8">
           <Link href="/student/classes">
             <Button
               variant="ghost" size="sm"
@@ -92,8 +92,12 @@ export default function StudentClassLayout({ children }: { children: React.React
               )}
             </div>
           </div>
+        </div>
+      </header>
 
-          {/* Navigation Tabs */}
+      {/* Navigation Tabs - STICKY */}
+      <div className="sticky top-16 z-30 bg-surface border-b border-outline-variant/30">
+        <div className="max-w-[1600px] mx-auto px-6 md:px-8">
           <nav className="flex gap-2 overflow-x-auto no-scrollbar border-b border-transparent">
             {tabs.map((tab) => {
               const isActive = pathname.startsWith(tab.href);
@@ -120,7 +124,7 @@ export default function StudentClassLayout({ children }: { children: React.React
             })}
           </nav>
         </div>
-      </header>
+      </div>
 
       {/* Main Content */}
       <main className="flex-1 bg-surface">
