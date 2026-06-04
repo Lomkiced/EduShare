@@ -8,6 +8,7 @@ import PostCard from "@/components/shared/PostCard";
 import { Button } from "@/components/ui/button";
 import { Plus, X } from "lucide-react";
 import { toast } from "sonner";
+import { LoadingButton } from "@/components/shared/LoadingButton";
 
 function CreateAssignmentForm({ classId, onCancel }: { classId: string, onCancel: () => void }) {
   const [content, setContent] = useState("");
@@ -152,14 +153,17 @@ function CreateAssignmentForm({ classId, onCancel }: { classId: string, onCancel
         )}
 
         <div className="flex justify-end pt-2 border-t border-outline-variant/30">
-          <Button
+          <LoadingButton
             type="submit"
-            disabled={!content.trim() || !deadline || isUploading || isPending}
+            disabled={!content.trim() || !deadline || isUploading}
+            isLoading={isPending}
+            loadingText="Creating..."
+            variant="primary"
             className="gap-2 px-6"
           >
-            {isPending ? "Creating..." : "Publish Assignment"}
+            Publish Assignment
             <span className="material-symbols-outlined text-[18px]">send</span>
-          </Button>
+          </LoadingButton>
         </div>
       </form>
     </div>

@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
       return errorResponse(parsed.error.errors[0].message, ERRORS.VALIDATION.status);
     }
 
-    const { classId, content, category, isPinned, isSubmissionPost, submissionDeadline, files } = parsed.data;
+    const { classId, content, category, isPinned, isSubmissionPost, submissionDeadline, attachedLink, files } = parsed.data;
 
     // Verify user has access to the class
     const hasAccess = await verifyClassAccess(classId, profile.id, profile.role);
@@ -155,6 +155,7 @@ export async function POST(request: NextRequest) {
           isPinned,
           isSubmissionPost,
           submissionDeadline: submissionDeadline ? new Date(submissionDeadline) : null,
+          attachedLink: attachedLink ?? null,
         },
       });
 
@@ -182,7 +183,8 @@ export async function POST(request: NextRequest) {
           studentIds,
           notificationType,
           `New ${isSubmissionPost ? "assignment" : "post"} in "${cls.name}": "${preview}"`,
-          post.id
+          post.id,
+          `/student/classes/${classId}/${isSubmissionPost ? "assignments" : "feed"}`
         );
       } else if (profile.role === "STUDENT") {
         // Notify the faculty
@@ -191,6 +193,7 @@ export async function POST(request: NextRequest) {
           type:        "NEW_POST",
           message:     `${profile.name} posted in "${cls.name}".`,
           referenceId: post.id,
+          link:        `/faculty/classes/${classId}/feed`,
         });
       }
     } catch (notifError) {

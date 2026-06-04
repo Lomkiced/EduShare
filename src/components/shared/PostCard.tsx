@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useAuthStore } from "@/store/auth.store";
 import { useTogglePin, useDeletePost, useUpdatePost } from "@/hooks/use-posts";
-import { useSubmissions, useSubmitFile } from "@/hooks/use-submissions";
+import { useSubmissions, useSubmitFile, useUnsubmit } from "@/hooks/use-submissions";
 import { useFileUpload } from "@/hooks/use-file-upload";
 import { toast } from "sonner";
 import type { Post } from "@/types";
@@ -29,6 +29,7 @@ interface PostCardProps {
 function StudentSubmissionSection({ postId, deadline }: { postId: string, deadline: string | null }) {
   const { data: submission, isLoading } = useSubmissions(postId);
   const { mutate: submitFile, isPending: isSubmitting } = useSubmitFile();
+  const { mutate: unsubmit, isPending: isUnsubmitting } = useUnsubmit();
   const { upload, isUploading, error: uploadError } = useFileUpload({ bucket: "submissions" });
   
   const [stagedFile, setStagedFile] = React.useState<File | null>(null);
@@ -124,6 +125,16 @@ function StudentSubmissionSection({ postId, deadline }: { postId: string, deadli
             </p>
           </div>
         </div>
+
+        {submission.status === "PENDING" && (
+          <button
+            onClick={() => unsubmit({ submissionId: submission.id, postId })}
+            disabled={isUnsubmitting}
+            className="px-3 py-1.5 rounded-lg border border-red-200 text-red-600 font-label-sm hover:bg-red-50 hover:border-red-300 transition-colors disabled:opacity-50"
+          >
+            {isUnsubmitting ? "Removing..." : "Remove File"}
+          </button>
+        )}
       </div>
     );
   }
@@ -271,7 +282,7 @@ export default function PostCard({ post, isFacultyView = false }: PostCardProps)
   const [editContent, setEditContent] = useState(post.content);
 
   const { mutate: togglePin } = useTogglePin(post.classId);
-  const { mutate: deletePost } = useDeletePost(post.classId);
+  const { mutate: deletePost, isPending: isDeleting } = useDeletePost(post.classId);
   const { mutate: updatePost, isPending: isUpdating } = useUpdatePost(post.id, post.classId);
 
   const isAuthor = user?.id === post.authorId;
@@ -382,12 +393,16 @@ export default function PostCard({ post, isFacultyView = false }: PostCardProps)
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
                         <AlertDialogAction
-                          onClick={() => deletePost(post.id)}
-                          className="bg-error text-on-error hover:bg-error/90"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            deletePost(post.id);
+                          }}
+                          disabled={isDeleting}
+                          className="bg-error text-on-error hover:bg-error/90 disabled:opacity-50"
                         >
-                          Delete Post
+                          {isDeleting ? "Deleting..." : "Delete Post"}
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
@@ -434,6 +449,30 @@ export default function PostCard({ post, isFacultyView = false }: PostCardProps)
               {post.files.map((file) => (
                 <FileAttachmentItem key={file.id} file={file} />
               ))}
+            </div>
+          )}
+
+          {post.attachedLink && (
+            <div className="mb-6">
+              <a
+                href={post.attachedLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 px-4 py-3 rounded-lg border border-primary/20 bg-primary/5 hover:bg-primary/10 hover:border-primary/40 transition-all group w-full min-w-0"
+              >
+                <span className="w-9 h-9 rounded-full bg-primary-container text-primary flex items-center justify-center shrink-0">
+                  <span className="material-symbols-outlined text-[18px]">link</span>
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="font-label-sm text-on-surface-variant mb-0.5">Attached Link</p>
+                  <p className="font-label-md text-primary truncate group-hover:underline">
+                    {post.attachedLink}
+                  </p>
+                </div>
+                <span className="material-symbols-outlined text-primary/50 group-hover:text-primary transition-colors shrink-0">
+                  open_in_new
+                </span>
+              </a>
             </div>
           )}
 

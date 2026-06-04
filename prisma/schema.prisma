@@ -146,6 +146,8 @@ model Post {
   /// Set to true when this post requires student submissions (like an assignment)
   isSubmissionPost   Boolean   @default(false)
   submissionDeadline DateTime?
+  /// Optional external URL attached to this post by the faculty
+  attachedLink       String?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
@@ -248,6 +250,8 @@ model Notification {
   isRead      Boolean  @default(false)
   /// Optional: ID of the related entity (post, submission, etc.)
   referenceId String?
+  /// Optional: Destination path when the notification is clicked
+  link        String?
   createdAt   DateTime @default(now())
 
   // Relations

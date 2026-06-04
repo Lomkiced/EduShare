@@ -7,9 +7,10 @@ import { useLessons, useCreateLesson } from "@/hooks/use-lessons";
 import { useAssessmentQuestions, useCreateAssessment, useUpdateAssessment } from "@/hooks/use-assessments";
 import { useFileUpload } from "@/hooks/use-file-upload";
 import { LessonCard } from "@/components/faculty/LessonCard";
-import AssessmentBuilder from "@/components/faculty/AssessmentBuilder";
 import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/shared/LoadingButton";
 import { Skeleton } from "@/components/ui/skeleton";
+import AssessmentBuilder from "@/components/faculty/AssessmentBuilder";
 import {
   Dialog,
   DialogContent,
@@ -248,7 +249,7 @@ function AssessmentPanel({ lesson, onClose }: { lesson: Lesson; onClose: () => v
 
   const { data: questions = [] } = useAssessmentQuestions(lesson.assessment?.id ?? "");
   const { mutate: createAssessment, isPending: isCreatingAssessment } = useCreateAssessment(lesson.id);
-  const { mutate: updateAssessment } = useUpdateAssessment(lesson.assessment?.id ?? "");
+  const { mutate: updateAssessment, isPending: isUpdatingAssessment } = useUpdateAssessment(lesson.assessment?.id ?? "");
 
   const [title,         setTitle]         = useState(lesson.assessment?.title ?? "");
   const [passingScore,  setPassingScore]  = useState(lesson.assessment?.passingScore ?? 75);
@@ -326,13 +327,15 @@ function AssessmentPanel({ lesson, onClose }: { lesson: Lesson; onClose: () => v
             {lesson.assessment && (
               <Button variant="ghost" onClick={() => setShowSettingsForm(false)}>Cancel</Button>
             )}
-            <Button
+            <LoadingButton
               onClick={handleSaveSettings}
-              disabled={isCreatingAssessment || !title.trim()}
-              className="bg-primary text-on-primary hover:opacity-90"
+              disabled={!title.trim()}
+              isLoading={isCreatingAssessment || isUpdatingAssessment}
+              loadingText="Saving..."
+              variant="primary"
             >
-              {isCreatingAssessment ? "Saving..." : "Save Settings"}
-            </Button>
+              Save Settings
+            </LoadingButton>
           </div>
         </div>
       ) : (

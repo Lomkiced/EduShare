@@ -46,6 +46,7 @@ export function useCreatePost() {
       isPinned?:            boolean;
       isSubmissionPost?:    boolean;
       submissionDeadline?:  string | null;
+      attachedLink?:        string | null;
       files?: {
         fileName: string;
         fileUrl:  string;

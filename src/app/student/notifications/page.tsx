@@ -4,8 +4,10 @@ import React from "react";
 import { useNotifications, useMarkNotificationsRead, useClearReadNotifications } from "@/hooks/use-notifications";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
 
 export default function StudentNotificationsPage() {
+  const router = useRouter();
   const { data: notifData, isLoading } = useNotifications();
   const notifications = notifData?.notifications || [];
   const { mutate: markRead } = useMarkNotificationsRead();
@@ -17,6 +19,15 @@ export default function StudentNotificationsPage() {
   };
 
   const hasReadNotifications = notifications.some((n: any) => n.isRead);
+
+  const handleNotificationClick = (notification: any) => {
+    if (!notification.isRead) {
+      markRead([notification.id]);
+    }
+    if (notification.link) {
+      router.push(notification.link);
+    }
+  };
 
   return (
     <div className="p-6 md:p-8 max-w-[1000px] mx-auto w-full">
@@ -46,10 +57,11 @@ export default function StudentNotificationsPage() {
         <div className="text-center p-12 text-on-surface-variant font-body-lg">Loading notifications...</div>
       ) : notifications.length > 0 ? (
         <div className="flex flex-col gap-4">
-          {notifications.map((notification) => (
+          {notifications.map((notification: any) => (
             <Card
               key={notification.id}
-              className={`p-4 flex items-start gap-4 transition-colors ${
+              onClick={() => handleNotificationClick(notification)}
+              className={`p-4 flex items-start gap-4 transition-all cursor-pointer hover:bg-surface-container-low ${
                 notification.isRead ? "bg-surface-container-lowest opacity-70" : "bg-primary/5 border-primary/20"
               }`}
             >
@@ -74,7 +86,10 @@ export default function StudentNotificationsPage() {
               </div>
               {!notification.isRead && (
                 <button
-                  onClick={() => markRead([notification.id])}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    markRead([notification.id]);
+                  }}
                   className="w-8 h-8 rounded-full hover:bg-primary/10 text-primary flex items-center justify-center transition-colors"
                   title="Mark as read"
                 >

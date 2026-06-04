@@ -94,7 +94,7 @@ export async function POST(
 
     const post = await prisma.post.findUnique({
       where: { id: postId },
-      select: { classId: true, authorId: true },
+      select: { classId: true, authorId: true, author: { select: { role: true } } },
     });
     if (!post) return errorResponse(ERRORS.NOT_FOUND.message, ERRORS.NOT_FOUND.status);
 
@@ -120,6 +120,7 @@ export async function POST(
           type:        "NEW_COMMENT",
           message:     `${profile.name} commented on your post.`,
           referenceId: postId,
+          link:        `/${post.author.role === "FACULTY" ? "faculty" : "student"}/classes/${post.classId}/feed`,
         });
       } catch (notifError) {
         console.warn("[POST /api/posts/[postId]/comments] Notification failed:", notifError);

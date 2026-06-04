@@ -3,10 +3,15 @@
 import React, { useEffect, useState } from "react";
 import { useFacultySidebarStore } from "@/store/sidebarStore";
 import { createClient } from "@/lib/supabase/client";
+import { useNotifications, useMarkNotificationsRead } from "@/hooks/use-notifications";
+import Link from "next/link";
 
 export default function FacultyHeader() {
   const { toggle } = useFacultySidebarStore();
   const [initials, setInitials] = useState<string>("F");
+  const { data: notificationsData } = useNotifications();
+  const markAsRead = useMarkNotificationsRead();
+  const unreadCount = notificationsData?.unreadCount ?? 0;
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -59,15 +64,21 @@ export default function FacultyHeader() {
 
       {/* Right Side */}
       <div className="flex items-center gap-3">
-        <button className="relative w-10 h-10 rounded-full hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant transition-colors group">
+        <Link 
+          href="/faculty/notifications"
+          onClick={() => { if (unreadCount > 0) markAsRead.mutate(undefined); }}
+          className="relative w-10 h-10 rounded-full hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant transition-colors group"
+        >
           <span
             className="material-symbols-outlined group-hover:text-primary transition-colors"
             style={{ fontVariationSettings: "'FILL' 0" }}
           >
             notifications
           </span>
-          <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-error rounded-full border-2 border-surface-container-lowest"></span>
-        </button>
+          {unreadCount > 0 && (
+            <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-error rounded-full border-2 border-surface-container-lowest"></span>
+          )}
+        </Link>
         <button className="w-10 h-10 rounded-full hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant transition-colors group">
           <span
             className="material-symbols-outlined group-hover:rotate-45 transition-transform duration-300"

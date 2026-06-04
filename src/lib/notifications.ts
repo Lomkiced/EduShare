@@ -30,6 +30,7 @@ export interface CreateNotificationInput {
   type: NotificationType;
   message: string;
   referenceId?: string;
+  link?: string;
 }
 
 // ─── Single Notification ──────────────────────────────────────────────────────
@@ -48,6 +49,7 @@ export async function createNotification(
       type:        input.type,
       message:     input.message,
       referenceId: input.referenceId,
+      link:        input.link,
       isRead:      false,
     },
   });
@@ -64,7 +66,8 @@ export async function createBulkNotifications(
   userIds: string[],
   type: NotificationType,
   message: string,
-  referenceId?: string
+  referenceId?: string,
+  link?: string
 ): Promise<void> {
   if (userIds.length === 0) return;
 
@@ -74,6 +77,7 @@ export async function createBulkNotifications(
       type,
       message,
       referenceId,
+      link,
       isRead: false,
     })),
     skipDuplicates: true,

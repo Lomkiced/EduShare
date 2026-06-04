@@ -74,6 +74,7 @@ export interface Post {
   isPinned:           boolean;
   isSubmissionPost:   boolean;
   submissionDeadline: string | null;
+  attachedLink:       string | null;
   createdAt:          string;
   updatedAt:          string;
   classId:            string;

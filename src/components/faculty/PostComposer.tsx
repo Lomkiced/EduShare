@@ -3,6 +3,7 @@
 import React, { useState, useRef } from "react";
 import { useCreatePost } from "@/hooks/use-posts";
 import { useFileUpload } from "@/hooks/use-file-upload";
+import { LoadingButton } from "@/components/shared/LoadingButton";
 
 interface PostComposerProps {
   classId: string;
@@ -11,6 +12,7 @@ interface PostComposerProps {
 export default function PostComposer({ classId }: PostComposerProps) {
   const [content, setContent] = useState("");
   const [isExpanded, setIsExpanded] = useState(false);
+  const [attachedLink, setAttachedLink] = useState("");
 
   const [attachments, setAttachments] = useState<Array<{ fileName: string; fileUrl: string; fileType: string; fileSize: number }>>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -53,6 +55,7 @@ export default function PostComposer({ classId }: PostComposerProps) {
         content,
         isSubmissionPost: false,
         submissionDeadline: null,
+        attachedLink: attachedLink.trim() || null,
         files: attachments,
       },
       {
@@ -60,6 +63,7 @@ export default function PostComposer({ classId }: PostComposerProps) {
           setContent("");
           setIsExpanded(false);
           setAttachments([]);
+          setAttachedLink("");
         },
       }
     );
@@ -105,6 +109,29 @@ export default function PostComposer({ classId }: PostComposerProps) {
               </div>
             )}
 
+            {/* Link Attachment Input */}
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-outline-variant/50 bg-surface-container-low/30 focus-within:border-primary/50 focus-within:bg-surface-container-low transition-all">
+              <span className="material-symbols-outlined text-outline text-[20px] shrink-0">link</span>
+              <input
+                type="url"
+                value={attachedLink}
+                onChange={(e) => setAttachedLink(e.target.value)}
+                placeholder="Attach a link (e.g. https://example.com)"
+                className="flex-1 bg-transparent outline-none font-label-md text-on-surface placeholder:text-on-surface-variant/60 min-w-0"
+                disabled={isPending}
+              />
+              {attachedLink && (
+                <button
+                  type="button"
+                  onClick={() => setAttachedLink("")}
+                  className="text-outline hover:text-error transition-colors p-0.5 rounded-full shrink-0"
+                  title="Clear link"
+                >
+                  <span className="material-symbols-outlined text-[16px]">close</span>
+                </button>
+              )}
+            </div>
+
             {/* Actions */}
             <div className="flex items-center justify-between mt-2">
               <div className="flex items-center gap-2 text-on-surface-variant">
@@ -136,20 +163,24 @@ export default function PostComposer({ classId }: PostComposerProps) {
                     setIsExpanded(false);
                     setContent("");
                     setAttachments([]);
+                    setAttachedLink("");
                   }}
                   disabled={isPending || isUploading}
                   className="px-4 py-2 font-label-md text-on-surface-variant hover:bg-surface-container-low rounded-lg transition-colors disabled:opacity-50"
                 >
                   Cancel
                 </button>
-                <button
+                <LoadingButton
                   type="submit"
-                  disabled={!content.trim() || isPending || isUploading}
-                  className="px-5 py-2 font-label-md bg-primary text-on-primary rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-2 shadow-sm"
+                  disabled={!content.trim() || isUploading}
+                  isLoading={isPending}
+                  loadingText="Posting..."
+                  variant="primary"
+                  className="px-5 py-2 shadow-sm"
                 >
-                  {isPending ? "Posting..." : "Post"}
-                  {!isPending && <span className="material-symbols-outlined text-[18px]">send</span>}
-                </button>
+                  Post
+                  <span className="material-symbols-outlined text-[18px]">send</span>
+                </LoadingButton>
               </div>
             </div>
           </div>

@@ -6,7 +6,7 @@ import { usePathname, useRouter, useParams } from "next/navigation";
 import { useStudentSidebarStore } from "@/store/sidebarStore";
 import { logoutAction } from "@/lib/actions/auth";
 import { useNotifications } from "@/hooks/use-notifications";
-
+import { useClasses } from "@/hooks/use-class";
 
 const footerItems = [
   { label: "Profile", icon: "account_circle", href: "/student/profile" },
@@ -18,12 +18,17 @@ export default function StudentSidebar() {
   const params = useParams();
   const { isOpen, close } = useStudentSidebarStore();
   const [joinModalOpen, setJoinModalOpen] = useState(false);
+  
   const { data: notificationsData } = useNotifications();
   const unreadCount = notificationsData?.unreadCount ?? 0;
 
+  const { data: classes = [] } = useClasses();
+  const firstClassId = classes.length > 0 ? classes[0].id : null;
+  const mySectionHref = firstClassId ? `/student/classes/${firstClassId}/feed` : "/student/classes";
+
   const navItems = [
     { label: "Dashboard", icon: "dashboard", href: "/student/dashboard" },
-    { label: "My Section", icon: "school", href: "/student/classes" },
+    { label: "My Section", icon: "school", href: mySectionHref },
     { label: "Notifications", icon: "notifications", href: "/student/notifications" },
   ];
 
@@ -67,7 +72,15 @@ export default function StudentSidebar() {
       {/* Main Navigation */}
       <div className="flex-1 flex flex-col gap-1">
         {navItems.map((item) => {
-          const isActive = pathname === item.href;
+          let isActive = false;
+          if (item.label === "Dashboard") {
+            isActive = pathname === item.href;
+          } else if (item.label === "My Section") {
+            isActive = pathname.startsWith("/student/classes");
+          } else {
+            isActive = pathname.startsWith(item.href);
+          }
+          
           const isNotifications = item.label === "Notifications";
 
           return (
@@ -101,7 +114,9 @@ export default function StudentSidebar() {
       {/* Footer Navigation */}
       <div className="mt-auto border-t border-slate-200 pt-4 flex flex-col gap-1">
         {footerItems.map((item) => {
-          const isActive = pathname === item.href;
+          const isActive = item.href === "/student/profile" 
+            ? pathname === item.href 
+            : pathname.startsWith(item.href);
           return (
             <Link
               key={item.href}

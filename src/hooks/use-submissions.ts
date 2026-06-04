@@ -56,6 +56,23 @@ export function useReviewSubmission() {
   });
 }
 
+export function useUnsubmit() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      submissionId,
+    }: {
+      submissionId: string;
+      postId:       string;
+    }) => apiClient.delete(`/api/submissions/${submissionId}`),
+    onSuccess: (_, { postId }) => {
+      qc.invalidateQueries({ queryKey: ["submissions", postId] });
+      toast.success("Submission removed.");
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
 export function useNeedsGrading(classId: string) {
   return useQuery({
     queryKey: ["needs-grading", classId],
