@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Mail, Briefcase, Calendar, Shield, Bell, BookOpen, FileCheck, Camera } from "lucide-react";
+import { Mail, Briefcase, Calendar, Shield, Bell, Users, School, Camera } from "lucide-react";
 import { ProfileForm } from "@/components/profile/profile-form";
 import { PasswordForm } from "@/components/profile/password-form";
 import { ImageUpload } from "@/components/ui/image-upload";
@@ -14,15 +14,15 @@ import { updateAvatarUrl, updateCoverUrl } from "@/lib/actions/profile";
 import { format } from "date-fns";
 import { useAuthStore } from "@/store/auth.store";
 
-interface ProfileClientProps {
+interface FacultyProfileClientProps {
   user: User;
   stats: {
-    enrolledClasses: number;
-    totalSubmissions: number;
+    activeClasses: number;
+    totalStudents: number;
   };
 }
 
-export default function ProfileClient({ user, stats }: ProfileClientProps) {
+export default function FacultyProfileClient({ user, stats }: FacultyProfileClientProps) {
   const setUser = useAuthStore((state) => state.setUser);
 
   const initials = user.name
@@ -149,21 +149,21 @@ export default function ProfileClient({ user, stats }: ProfileClientProps) {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Card>
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
-                      <CardTitle className="text-sm font-medium text-muted-foreground">Enrolled Classes</CardTitle>
-                      <BookOpen className="w-4 h-4 text-muted-foreground" />
+                      <CardTitle className="text-sm font-medium text-muted-foreground">Active Classes</CardTitle>
+                      <School className="w-4 h-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">{stats.enrolledClasses}</div>
+                      <div className="text-2xl font-bold">{stats.activeClasses}</div>
                     </CardContent>
                   </Card>
                   
                   <Card>
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
-                      <CardTitle className="text-sm font-medium text-muted-foreground">Total Submissions</CardTitle>
-                      <FileCheck className="w-4 h-4 text-muted-foreground" />
+                      <CardTitle className="text-sm font-medium text-muted-foreground">Total Students</CardTitle>
+                      <Users className="w-4 h-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">{stats.totalSubmissions}</div>
+                      <div className="text-2xl font-bold">{stats.totalStudents}</div>
                     </CardContent>
                   </Card>
                 </div>

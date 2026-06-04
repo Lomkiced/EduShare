@@ -30,7 +30,7 @@ export default function StudentNotificationsPage() {
   };
 
   return (
-    <div className="p-6 md:p-8 max-w-[1000px] mx-auto w-full">
+    <div className="max-w-[1000px] mx-auto w-full">
       <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-on-surface tracking-tight mb-2">Notifications</h1>

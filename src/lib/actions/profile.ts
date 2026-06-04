@@ -27,8 +27,14 @@ export async function updateProfile(formData: z.infer<typeof updateProfileSchema
       },
     });
 
-    revalidatePath("/student/profile");
-    revalidatePath("/student"); 
+    const supabase = createClient();
+    await supabase.auth.updateUser({
+      data: { name: validatedData.name }
+    });
+
+    const basePath = session.profile.role === "STUDENT" ? "/student" : "/faculty";
+    revalidatePath(`${basePath}/profile`);
+    revalidatePath(basePath);
 
     return { success: true, user: updatedUser };
   } catch (error) {
@@ -87,8 +93,10 @@ export async function updateAvatarUrl(url: string) {
       data: { avatarUrl: url },
     });
 
-    revalidatePath("/student/profile");
-    revalidatePath("/student");
+    const basePath = session.profile.role === "STUDENT" ? "/student" : "/faculty";
+    revalidatePath(`${basePath}/profile`);
+    revalidatePath(basePath);
+
     return { success: true, user: updatedUser };
   } catch (error) {
     console.error("Error updating avatar:", error);
@@ -106,7 +114,10 @@ export async function updateCoverUrl(url: string) {
       data: { coverUrl: url },
     });
 
-    revalidatePath("/student/profile");
+    const basePath = session.profile.role === "STUDENT" ? "/student" : "/faculty";
+    revalidatePath(`${basePath}/profile`);
+    revalidatePath(basePath);
+
     return { success: true, user: updatedUser };
   } catch (error) {
     console.error("Error updating cover photo:", error);
