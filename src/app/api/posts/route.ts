@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
       if (!hasAccess) return errorResponse(ERRORS.FORBIDDEN.message, ERRORS.FORBIDDEN.status);
       whereClause = { classId };
     } else {
-      // Fetch posts for all classes the user has access to
+      // Resolve accessible class IDs based on role
       if (profile.role === "STUDENT") {
         const memberships = await prisma.classMembership.findMany({
           where: { studentId: profile.id },
@@ -64,6 +64,14 @@ export async function GET(request: NextRequest) {
       } else if (profile.role === "ADMIN") {
         whereClause = {}; // Admin sees all
       }
+    }
+
+    // Optional filter: ?isSubmission=false hides assignment posts (used by Feed views)
+    const isSubmissionParam = request.nextUrl.searchParams.get("isSubmission");
+    if (isSubmissionParam === "false") {
+      whereClause.isSubmissionPost = false;
+    } else if (isSubmissionParam === "true") {
+      whereClause.isSubmissionPost = true;
     }
 
     const posts = await prisma.post.findMany({
@@ -108,7 +116,7 @@ export async function POST(request: NextRequest) {
       return errorResponse(parsed.error.errors[0].message, ERRORS.VALIDATION.status);
     }
 
-    const { classId, content, category, isPinned, isSubmissionPost, submissionDeadline, files } = parsed.data;
+    const { classId, content, category, isPinned, isSubmissionPost, submissionDeadline, attachedLink, files } = parsed.data;
 
     // Verify user has access to the class
     const hasAccess = await verifyClassAccess(classId, profile.id, profile.role);
@@ -147,6 +155,7 @@ export async function POST(request: NextRequest) {
           isPinned,
           isSubmissionPost,
           submissionDeadline: submissionDeadline ? new Date(submissionDeadline) : null,
+          attachedLink: attachedLink ?? null,
         },
       });
 
@@ -169,11 +178,13 @@ export async function POST(request: NextRequest) {
         });
         const studentIds = memberships.map((m) => m.studentId);
         const preview = content.length > 60 ? content.slice(0, 60) + "..." : content;
+        const notificationType = isSubmissionPost ? "NEW_ASSIGNMENT" : "NEW_POST";
         await createBulkNotifications(
           studentIds,
-          "NEW_POST",
-          `New post in "${cls.name}": "${preview}"`,
-          post.id
+          notificationType,
+          `New ${isSubmissionPost ? "assignment" : "post"} in "${cls.name}": "${preview}"`,
+          post.id,
+          `/student/classes/${classId}/${isSubmissionPost ? "assignments" : "feed"}`
         );
       } else if (profile.role === "STUDENT") {
         // Notify the faculty
@@ -182,6 +193,7 @@ export async function POST(request: NextRequest) {
           type:        "NEW_POST",
           message:     `${profile.name} posted in "${cls.name}".`,
           referenceId: post.id,
+          link:        `/faculty/classes/${classId}/feed`,
         });
       }
     } catch (notifError) {

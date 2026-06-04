@@ -4,7 +4,8 @@ import React, { useState } from "react";
 import PostCard from "@/components/shared/PostCard";
 import { Card } from "@/components/ui/card";
 import { useClass } from "@/hooks/use-class";
-import { usePosts, useCreatePost } from "@/hooks/use-posts";
+import { useFeedPosts, useCreatePost } from "@/hooks/use-posts";
+import { useUpcomingDeadlines } from "@/hooks/use-submissions";
 import { useParams } from "next/navigation";
 
 // --- Helpers ---
@@ -61,11 +62,8 @@ export default function StudentClassFeedPage() {
   const classId = params.classId as string;
 
   const { data: classData, isLoading: isLoadingClass } = useClass(classId);
-  const { data: posts = [], isLoading: isLoadingPosts } = usePosts(classId);
-
-  const upcomingDeadlines = posts
-    .filter((p) => p.isSubmissionPost && p.submissionDeadline && new Date(p.submissionDeadline) > new Date())
-    .sort((a, b) => new Date(a.submissionDeadline!).getTime() - new Date(b.submissionDeadline!).getTime());
+  const { data: posts = [], isLoading: isLoadingPosts } = useFeedPosts(classId);
+  const { data: upcomingDeadlines = [], isLoading: isLoadingDeadlines } = useUpcomingDeadlines(classId);
 
   if (isLoadingClass || isLoadingPosts) {
     return <div className="p-12 text-center text-on-surface-variant font-body-lg">Loading class feed...</div>;
@@ -134,8 +132,19 @@ export default function StudentClassFeedPage() {
               <div className="p-0">
                 {upcomingDeadlines.length > 0 ? (
                   <div className="flex flex-col divide-y divide-outline-variant/20">
-                    {upcomingDeadlines.map((assignment) => (
-                      <div key={assignment.id} className="p-4 hover:bg-surface-container transition-colors cursor-pointer group">
+                    {upcomingDeadlines.map((assignment: any) => (
+                      <div 
+                        key={assignment.id} 
+                        className="p-4 hover:bg-surface-container transition-colors cursor-pointer group"
+                        onClick={() => {
+                          const el = document.getElementById(`post-${assignment.id}`);
+                          if (el) {
+                            el.scrollIntoView({ behavior: "smooth", block: "center" });
+                            el.classList.add("ring-2", "ring-primary", "ring-offset-2", "transition-shadow");
+                            setTimeout(() => el.classList.remove("ring-2", "ring-primary", "ring-offset-2", "transition-shadow"), 2000);
+                          }
+                        }}
+                      >
                         <div className="text-sm font-medium text-on-surface line-clamp-2 group-hover:text-tertiary transition-colors mb-2 leading-relaxed">
                           {assignment.content.split(".")[0]}
                         </div>

@@ -29,7 +29,7 @@ export function ClassCard({ classData }: ClassCardProps) {
     : "FA";
 
   return (
-    <Link href={`/student/classes/${classData.id}`} className="block h-full group">
+    <Link href={`/student/classes/${classData.id}/feed`} className="block h-full group">
       <div className="flex flex-col h-full bg-surface-container-lowest rounded-2xl border border-outline-variant/30 overflow-hidden shadow-sm hover:shadow-md hover:border-primary/40 transition-all duration-300">
         
         {/* Banner area */}

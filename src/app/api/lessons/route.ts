@@ -47,45 +47,40 @@ export async function GET(request: NextRequest) {
     const hasAccess = await verifyClassAccess(classId, profile.id, profile.role);
     if (!hasAccess) return errorResponse(ERRORS.FORBIDDEN.message, ERRORS.FORBIDDEN.status);
 
-    const lessons = await prisma.lesson.findMany({
-      where: {
-        classId,
-        ...(profile.role === "STUDENT" ? { isPublished: true } : {}),
-      },
-      include: {
-        assessment: {
-          select: {
-            id: true,
-            title: true,
-            passingScore: true,
-            maxAttempts: true,
-            timeLimitMins: true,
-            shuffleQuestions: true,
-            showResults: true,
-            _count: { select: { questions: true, attempts: true } },
-          },
-        },
-        ...(profile.role === "STUDENT"
-          ? {
-              progress: {
-                where: { studentId: profile.id },
-              },
-            }
-          : {}),
-      },
-      orderBy: { order: "asc" },
-    });
-
-    // For students: compute LessonWithStatus sequential lock logic
+    // For students: run lessons + passed-attempts concurrently
     if (profile.role === "STUDENT") {
-      const passedAttempts = await prisma.assessmentAttempt.findMany({
-        where: {
-          studentId: profile.id,
-          status: "PASSED",
-          assessment: { lesson: { classId } },
-        },
-        select: { assessment: { select: { lessonId: true } } },
-      });
+      const [lessons, passedAttempts] = await Promise.all([
+        prisma.lesson.findMany({
+          where: { classId, isPublished: true },
+          include: {
+            assessment: {
+              select: {
+                id: true,
+                title: true,
+                passingScore: true,
+                maxAttempts: true,
+                timeLimitMins: true,
+                shuffleQuestions: true,
+                showResults: true,
+                _count: { select: { questions: true, attempts: true } },
+              },
+            },
+            progress: {
+              where: { studentId: profile.id },
+            },
+          },
+          orderBy: { order: "asc" },
+        }),
+        prisma.assessmentAttempt.findMany({
+          where: {
+            studentId: profile.id,
+            status: "PASSED",
+            assessment: { lesson: { classId } },
+          },
+          select: { assessment: { select: { lessonId: true } } },
+        }),
+      ]);
+
       const passedLessonIds = new Set(passedAttempts.map((a) => a.assessment.lessonId));
 
       const lessonsWithStatus: LessonWithStatus[] = lessons.map((lesson, index) => {
@@ -109,8 +104,20 @@ export async function GET(request: NextRequest) {
           }
         }
 
+        // Ensure createdAt and updatedAt are strings for type compatibility
+        const createdAtStr =
+          lesson.createdAt instanceof Date
+            ? lesson.createdAt.toISOString()
+            : (lesson.createdAt as any);
+        const updatedAtStr =
+          lesson.updatedAt instanceof Date
+            ? lesson.updatedAt.toISOString()
+            : (lesson.updatedAt as any);
+
         return {
           ...lesson,
+          createdAt: createdAtStr,
+          updatedAt: updatedAtStr,
           status,
           progress,
           canTakeAssessment:
@@ -123,6 +130,26 @@ export async function GET(request: NextRequest) {
 
       return successResponse(lessonsWithStatus);
     }
+
+    // Faculty/Admin: single query, no status computation needed
+    const lessons = await prisma.lesson.findMany({
+      where: { classId },
+      include: {
+        assessment: {
+          select: {
+            id: true,
+            title: true,
+            passingScore: true,
+            maxAttempts: true,
+            timeLimitMins: true,
+            shuffleQuestions: true,
+            showResults: true,
+            _count: { select: { questions: true, attempts: true } },
+          },
+        },
+      },
+      orderBy: { order: "asc" },
+    });
 
     return successResponse(lessons);
   } catch (error) {

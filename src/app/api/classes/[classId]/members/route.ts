@@ -1,7 +1,10 @@
 /**
  * app/api/classes/[classId]/members/route.ts
  *
- * GET /api/classes/[classId]/members — List all enrolled students (Faculty/Admin)
+ * GET /api/classes/[classId]/members — List all enrolled students
+ *   - Faculty (owner): full member list
+ *   - Student (enrolled): full member list (to power the Classmates view)
+ *   - Admin: full member list
  */
 
 import { NextRequest } from "next/server";
@@ -22,16 +25,19 @@ export async function GET(
     const { profile } = session;
     const { classId } = params;
 
-    // Only Faculty (owner) or Admin can list members
-    if (profile.role === "STUDENT") {
-      return errorResponse(ERRORS.FORBIDDEN.message, ERRORS.FORBIDDEN.status);
-    }
-
     if (profile.role === "FACULTY") {
+      // Faculty must own this class
       const cls = await prisma.class.findUnique({ where: { id: classId }, select: { facultyId: true } });
       if (!cls) return errorResponse(ERRORS.NOT_FOUND.message, ERRORS.NOT_FOUND.status);
       if (cls.facultyId !== profile.id) return errorResponse(ERRORS.FORBIDDEN.message, ERRORS.FORBIDDEN.status);
+    } else if (profile.role === "STUDENT") {
+      // Student must be enrolled in this class
+      const membership = await prisma.classMembership.findUnique({
+        where: { classId_studentId: { classId, studentId: profile.id } },
+      });
+      if (!membership) return errorResponse(ERRORS.FORBIDDEN.message, ERRORS.FORBIDDEN.status);
     }
+    // ADMIN: no additional check needed
 
     const members = await prisma.classMembership.findMany({
       where: { classId },

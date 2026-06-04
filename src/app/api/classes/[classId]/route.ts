@@ -11,6 +11,7 @@ import prisma from "@/lib/prisma";
 import { getAuthSession } from "@/lib/auth-session";
 import { successResponse, errorResponse, ERRORS } from "@/lib/api-response";
 import { updateClassSchema } from "@/lib/validations/class";
+import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -143,6 +144,42 @@ export async function DELETE(
     if (!cls) return errorResponse(ERRORS.NOT_FOUND.message, ERRORS.NOT_FOUND.status);
     if (cls.facultyId !== profile.id) return errorResponse(ERRORS.FORBIDDEN.message, ERRORS.FORBIDDEN.status);
 
+    // Gather all physical files associated with this class
+    const postsInClass = await prisma.post.findMany({
+      where: { classId },
+      select: {
+        files: { select: { fileUrl: true } },
+        submissions: { select: { fileUrl: true } },
+      },
+    });
+
+    const supabase = createClient();
+    
+    // Extract PostFile paths
+    const postFilePaths = postsInClass
+      .flatMap((p) => p.files)
+      .filter((f) => f.fileUrl)
+      .map((f) => f.fileUrl.split("post_files/")[1])
+      .filter(Boolean);
+
+    // Extract Submission file paths
+    const submissionFilePaths = postsInClass
+      .flatMap((p) => p.submissions)
+      .filter((s) => s.fileUrl)
+      .map((s) => s.fileUrl!.split("submissions/")[1])
+      .filter(Boolean);
+
+    // Batch Delete from Supabase
+    if (postFilePaths.length > 0) {
+      const { error } = await supabase.storage.from("post_files").remove(postFilePaths);
+      if (error) console.error("[DELETE /api/classes/[classId]] Storage delete (post_files) failed:", error);
+    }
+    if (submissionFilePaths.length > 0) {
+      const { error } = await supabase.storage.from("submissions").remove(submissionFilePaths);
+      if (error) console.error("[DELETE /api/classes/[classId]] Storage delete (submissions) failed:", error);
+    }
+
+    // Cascade deletes all related DB records
     await prisma.class.delete({ where: { id: classId } });
 
     return successResponse(null, "Section deleted successfully.");

@@ -5,7 +5,7 @@ import PostComposer from "@/components/faculty/PostComposer";
 import PostCard from "@/components/shared/PostCard";
 import { Card } from "@/components/ui/card";
 import { useClass } from "@/hooks/use-class";
-import { usePosts } from "@/hooks/use-posts";
+import { useFeedPosts } from "@/hooks/use-posts";
 import { useParams } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -93,7 +93,7 @@ export default function FacultyClassFeedPage() {
   const classId = params.classId as string;
 
   const { data: classData, isLoading: isLoadingClass, isError: isClassError, error: classError } = useClass(classId);
-  const { data: posts = [], isLoading: isLoadingPosts, isError: isPostsError, error: postsError } = usePosts(classId);
+  const { data: posts = [], isLoading: isLoadingPosts, isError: isPostsError, error: postsError } = useFeedPosts(classId);
 
   const upcomingDeadlines = useMemo(() => {
     return posts

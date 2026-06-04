@@ -38,6 +38,9 @@ export default function ClassmatesModal({ isOpen, onClose, classId, className }:
         setIsLoading(false);
       };
       fetchClassmates();
+    } else {
+      setClassmates([]);
+      setError(null);
     }
   }, [isOpen, classId]);
 

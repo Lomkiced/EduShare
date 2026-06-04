@@ -11,6 +11,7 @@ import prisma from "@/lib/prisma";
 import { getAuthSession } from "@/lib/auth-session";
 import { successResponse, errorResponse, ERRORS } from "@/lib/api-response";
 import { createNotification } from "@/lib/notifications";
+import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -78,6 +79,7 @@ export async function PATCH(
         type:        "SUBMISSION_REVIEWED",
         message:     `Your submission for "${preview}" has been reviewed.`,
         referenceId: submission.postId,
+        link:        `/student/classes/${submission.post.classId}/assignments`,
       });
     } catch (notifError) {
       console.warn("[PATCH /api/submissions/[submissionId]] Notification failed:", notifError);
@@ -86,6 +88,58 @@ export async function PATCH(
     return successResponse(updated, "Submission marked as reviewed.");
   } catch (error) {
     console.error("[PATCH /api/submissions/[submissionId]]", error);
+    return errorResponse(ERRORS.INTERNAL.message, ERRORS.INTERNAL.status);
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { submissionId: string } }
+) {
+  try {
+    const session = await getAuthSession();
+    if (!session) return errorResponse(ERRORS.UNAUTHORIZED.message, ERRORS.UNAUTHORIZED.status);
+
+    const { profile } = session;
+    const { submissionId } = params;
+
+    const submission = await prisma.submission.findUnique({
+      where: { id: submissionId },
+    });
+
+    if (!submission) return errorResponse(ERRORS.NOT_FOUND.message, ERRORS.NOT_FOUND.status);
+
+    // Rule 3: Enforce authorization
+    if (submission.studentId !== profile.id) {
+      return errorResponse(ERRORS.FORBIDDEN.message, ERRORS.FORBIDDEN.status);
+    }
+
+    // Rule 1: Enforce status check
+    if (submission.status !== "PENDING") {
+      return errorResponse("Cannot unsubmit a graded or reviewed assignment.", 400);
+    }
+
+    // Rule 2: Delete physical file from storage
+    if (submission.fileUrl) {
+      const urlParts = submission.fileUrl.split("submissions/");
+      if (urlParts.length > 1) {
+        const filePath = urlParts[1];
+        const supabase = createClient();
+        const { error } = await supabase.storage.from("submissions").remove([filePath]);
+        if (error) {
+          console.error("[DELETE /api/submissions/[submissionId]] Storage delete failed:", error);
+        }
+      }
+    }
+
+    // Delete database record
+    await prisma.submission.delete({
+      where: { id: submissionId },
+    });
+
+    return successResponse(null, "Submission removed successfully.");
+  } catch (error) {
+    console.error("[DELETE /api/submissions/[submissionId]]", error);
     return errorResponse(ERRORS.INTERNAL.message, ERRORS.INTERNAL.status);
   }
 }

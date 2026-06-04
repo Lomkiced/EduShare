@@ -4,9 +4,12 @@ import React from "react";
 import Link from "next/link";
 import { usePathname, useParams } from "next/navigation";
 import { useClass } from "@/hooks/use-class";
+import { usePosts } from "@/hooks/use-posts";
+import { useNotifications, useMarkNotificationsRead } from "@/hooks/use-notifications";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MessageSquare, FileText, Users, ArrowLeft, Video } from "lucide-react";
+import { MessageSquare, FileText, Users, ArrowLeft, Video, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 export default function StudentClassLayout({ children }: { children: React.ReactNode }) {
   const params    = useParams();
@@ -14,12 +17,36 @@ export default function StudentClassLayout({ children }: { children: React.React
   const classId   = params.classId as string;
 
   const { data: classData, isLoading } = useClass(classId);
+  const { data: posts } = usePosts(classId);
+  const { data: notifData } = useNotifications(true);
+  const { mutate: markAsRead } = useMarkNotificationsRead();
+
+  // Filter unread alerts by matching their referenceId against the posts in this class
+  const classPostIds = new Set(posts?.map(p => p.id) || []);
+  const unreadAlerts = notifData?.notifications || [];
+  const classUnreadAlerts = unreadAlerts.filter(n => n.referenceId && classPostIds.has(n.referenceId));
+  
+  const feedUnreadAlerts = classUnreadAlerts.filter(n => n.type === "NEW_POST");
+  const assignmentUnreadAlerts = classUnreadAlerts.filter(n => n.type === "NEW_ASSIGNMENT");
+
+  const feedUnreadIds = feedUnreadAlerts.map(n => n.id).join(",");
+  const assignmentUnreadIds = assignmentUnreadAlerts.map(n => n.id).join(",");
+
+  React.useEffect(() => {
+    if (pathname.includes("/feed") && feedUnreadAlerts.length > 0) {
+      markAsRead(feedUnreadAlerts.map(n => n.id));
+    }
+    if (pathname.includes("/assignments") && assignmentUnreadAlerts.length > 0) {
+      markAsRead(assignmentUnreadAlerts.map(n => n.id));
+    }
+  }, [pathname, feedUnreadIds, assignmentUnreadIds, markAsRead]);
 
   const tabs = [
-    { label: "Feed",        href: `/student/classes/${classId}/feed`,        icon: MessageSquare },
+    { label: "Feed",        href: `/student/classes/${classId}/feed`,        icon: MessageSquare, badgeCount: feedUnreadAlerts.length },
+    { label: "Lessons",     href: `/student/classes/${classId}/lessons`,      icon: Video },
+    { label: "Assignments", href: `/student/classes/${classId}/assignments`,  icon: ClipboardList, badgeCount: assignmentUnreadAlerts.length },
     { label: "Submissions", href: `/student/classes/${classId}/submissions`,  icon: FileText },
     { label: "Members",     href: `/student/classes/${classId}/members`,      icon: Users },
-    { label: "Lessons",     href: `/student/classes/${classId}/lessons`,      icon: Video },
   ];
 
   return (
@@ -83,6 +110,11 @@ export default function StudentClassLayout({ children }: { children: React.React
                 >
                   <Icon className="w-4 h-4" />
                   {tab.label}
+                  {!!tab.badgeCount && (
+                    <Badge variant="destructive" className="ml-1 h-5 min-w-5 flex items-center justify-center px-1 text-[10px]">
+                      {tab.badgeCount}
+                    </Badge>
+                  )}
                 </Link>
               );
             })}

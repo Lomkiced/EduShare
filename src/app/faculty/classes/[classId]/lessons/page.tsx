@@ -5,10 +5,12 @@ import { useParams, useRouter } from "next/navigation";
 import { Plus, Video, BookOpen, AlertTriangle, GraduationCap } from "lucide-react";
 import { useLessons, useCreateLesson } from "@/hooks/use-lessons";
 import { useAssessmentQuestions, useCreateAssessment, useUpdateAssessment } from "@/hooks/use-assessments";
+import { useFileUpload } from "@/hooks/use-file-upload";
 import { LessonCard } from "@/components/faculty/LessonCard";
-import AssessmentBuilder from "@/components/faculty/AssessmentBuilder";
 import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/shared/LoadingButton";
 import { Skeleton } from "@/components/ui/skeleton";
+import AssessmentBuilder from "@/components/faculty/AssessmentBuilder";
 import {
   Dialog,
   DialogContent,
@@ -37,7 +39,12 @@ function CreateLessonModal({
   const [videoFile,      setVideoFile]      = useState<File | null>(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
   const [videoDuration,  setVideoDuration]  = useState(0);
-  const [isUploading,    setIsUploading]    = useState(false);
+  
+  const { upload, isUploading, progress, uploadState, error: uploadError, reset: resetUpload } = useFileUpload({
+    bucket: "lesson-videos",
+    folder: classId,
+    maxSizeMB: 5000,
+  });
 
   const { mutate: createLesson, isPending: isCreating } = useCreateLesson(classId);
 
@@ -62,22 +69,13 @@ function CreateLessonModal({
   const handleCreate = async () => {
     if (!videoFile || !title.trim()) return;
 
-    setIsUploading(true);
+    const uploadResult = await upload(videoFile);
+    if (!uploadResult) {
+      toast.error(uploadError || "Upload failed.");
+      return;
+    }
+
     try {
-      const supabase = createClient();
-      const ext = videoFile.name.split(".").pop();
-      const videoKey = `${classId}/${Date.now()}.${ext}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("lesson-videos")
-        .upload(videoKey, videoFile, { contentType: videoFile.type });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from("lesson-videos")
-        .getPublicUrl(videoKey);
-
       const currentLessons = await fetch(`/api/lessons?classId=${classId}`).then((r) => r.json());
       const nextOrder = (currentLessons.data?.length ?? 0) + 1;
 
@@ -87,8 +85,8 @@ function CreateLessonModal({
           title:         title.trim(),
           description:   description.trim() || undefined,
           order:         nextOrder,
-          videoUrl:      publicUrl,
-          videoKey,
+          videoUrl:      uploadResult.url,
+          videoKey:      uploadResult.path,
           videoDuration,
           isPublished,
         },
@@ -96,13 +94,12 @@ function CreateLessonModal({
           onSuccess: () => {
             onClose();
             resetForm();
+            resetUpload();
           },
         }
       );
     } catch (err: any) {
-      toast.error(err.message ?? "Upload failed.");
-    } finally {
-      setIsUploading(false);
+      toast.error(err.message ?? "Failed to save lesson.");
     }
   };
 
@@ -113,7 +110,15 @@ function CreateLessonModal({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) { onClose(); resetForm(); } }}>
+    <Dialog open={open} onOpenChange={(o) => { 
+      if (!o) { 
+        if (isUploading || uploadState === "finalizing") {
+          toast.warning("Please wait for the upload to finish before closing.");
+          return;
+        }
+        onClose(); resetForm(); resetUpload(); 
+      } 
+    }}>
       <DialogContent className="sm:max-w-[600px] bg-surface-container-lowest">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-on-surface">
@@ -189,8 +194,36 @@ function CreateLessonModal({
                 </label>
               </div>
 
+              {/* Upload Progress UI */}
+              {uploadState !== "idle" && (
+                <div className="bg-surface-container rounded-lg p-4 border border-outline-variant/30">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm font-semibold text-on-surface">
+                      {uploadState === "uploading" && "Uploading video... Please do not close this window."}
+                      {uploadState === "finalizing" && "Finalizing upload..."}
+                      {uploadState === "complete" && "Upload Complete!"}
+                      {uploadState === "error" && "Upload Failed."}
+                    </span>
+                    {uploadState !== "error" && <span className="text-sm font-bold text-primary">{progress}%</span>}
+                  </div>
+                  
+                  {uploadState !== "error" && (
+                    <div className="w-full bg-outline-variant/30 rounded-full h-2.5 overflow-hidden">
+                      <div 
+                        className={`h-full rounded-full transition-all duration-500 ${uploadState === 'complete' ? 'bg-success' : 'bg-primary'}`}
+                        style={{ width: `${progress}%` }}
+                      ></div>
+                    </div>
+                  )}
+
+                  {uploadState === "error" && uploadError && (
+                    <p className="text-xs text-error mt-1">{uploadError}</p>
+                  )}
+                </div>
+              )}
+
               <div className="flex gap-2 justify-end">
-                <Button variant="ghost" onClick={() => { setVideoFile(null); setVideoPreviewUrl(null); }}>
+                <Button variant="ghost" onClick={() => { setVideoFile(null); setVideoPreviewUrl(null); resetUpload(); }} disabled={isUploading}>
                   Change video
                 </Button>
                 <Button
@@ -216,7 +249,7 @@ function AssessmentPanel({ lesson, onClose }: { lesson: Lesson; onClose: () => v
 
   const { data: questions = [] } = useAssessmentQuestions(lesson.assessment?.id ?? "");
   const { mutate: createAssessment, isPending: isCreatingAssessment } = useCreateAssessment(lesson.id);
-  const { mutate: updateAssessment } = useUpdateAssessment(lesson.assessment?.id ?? "");
+  const { mutate: updateAssessment, isPending: isUpdatingAssessment } = useUpdateAssessment(lesson.assessment?.id ?? "");
 
   const [title,         setTitle]         = useState(lesson.assessment?.title ?? "");
   const [passingScore,  setPassingScore]  = useState(lesson.assessment?.passingScore ?? 75);
@@ -294,13 +327,15 @@ function AssessmentPanel({ lesson, onClose }: { lesson: Lesson; onClose: () => v
             {lesson.assessment && (
               <Button variant="ghost" onClick={() => setShowSettingsForm(false)}>Cancel</Button>
             )}
-            <Button
+            <LoadingButton
               onClick={handleSaveSettings}
-              disabled={isCreatingAssessment || !title.trim()}
-              className="bg-primary text-on-primary hover:opacity-90"
+              disabled={!title.trim()}
+              isLoading={isCreatingAssessment || isUpdatingAssessment}
+              loadingText="Saving..."
+              variant="primary"
             >
-              {isCreatingAssessment ? "Saving..." : "Save Settings"}
-            </Button>
+              Save Settings
+            </LoadingButton>
           </div>
         </div>
       ) : (

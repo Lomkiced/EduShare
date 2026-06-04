@@ -74,6 +74,7 @@ export interface Post {
   isPinned:           boolean;
   isSubmissionPost:   boolean;
   submissionDeadline: string | null;
+  attachedLink:       string | null;
   createdAt:          string;
   updatedAt:          string;
   classId:            string;
@@ -181,8 +182,8 @@ export interface Lesson {
   videoDuration: number;
   thumbnailUrl:  string | null;
   isPublished:   boolean;
-  createdAt:     string;
-  updatedAt:     string;
+  createdAt:     string | Date;
+  updatedAt:     string | Date;
   assessment?:   Assessment | null;
   progress?:     LessonProgress | null;
 }

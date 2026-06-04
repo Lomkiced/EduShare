@@ -56,6 +56,23 @@ export function useReviewSubmission() {
   });
 }
 
+export function useUnsubmit() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      submissionId,
+    }: {
+      submissionId: string;
+      postId:       string;
+    }) => apiClient.delete(`/api/submissions/${submissionId}`),
+    onSuccess: (_, { postId }) => {
+      qc.invalidateQueries({ queryKey: ["submissions", postId] });
+      toast.success("Submission removed.");
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
 export function useNeedsGrading(classId: string) {
   return useQuery({
     queryKey: ["needs-grading", classId],
@@ -74,8 +91,16 @@ export function useGradebook(classId: string) {
 
 export function useStudentGrades(classId: string) {
   return useQuery({
-    queryKey: ["student-grades", classId],
+    queryKey: ["grades", classId],
     queryFn: () => apiClient.get<any>(`/api/student/classes/${classId}/grades`),
+    enabled: !!classId,
+  });
+}
+
+export function useUpcomingDeadlines(classId: string) {
+  return useQuery({
+    queryKey: ["upcoming-deadlines", classId],
+    queryFn: () => apiClient.get<any[]>(`/api/student/classes/${classId}/upcoming-deadlines`),
     enabled: !!classId,
   });
 }

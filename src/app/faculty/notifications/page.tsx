@@ -4,8 +4,10 @@ import React from "react";
 import { useNotifications, useMarkNotificationsRead } from "@/hooks/use-notifications";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
 
 export default function FacultyNotificationsPage() {
+  const router = useRouter();
   const { data: notifData, isLoading } = useNotifications();
   const notifications = notifData?.notifications || [];
   const { mutate: markRead } = useMarkNotificationsRead();
@@ -13,6 +15,15 @@ export default function FacultyNotificationsPage() {
   const handleMarkAllRead = () => {
     const unreadIds = notifications.filter((n) => !n.isRead).map((n) => n.id);
     if (unreadIds.length > 0) markRead(unreadIds);
+  };
+
+  const handleNotificationClick = (notification: any) => {
+    if (!notification.isRead) {
+      markRead([notification.id]);
+    }
+    if (notification.link) {
+      router.push(notification.link);
+    }
   };
 
   return (
@@ -35,7 +46,8 @@ export default function FacultyNotificationsPage() {
           {notifications.map((notification) => (
             <Card
               key={notification.id}
-              className={`p-4 flex items-start gap-4 transition-colors ${
+              onClick={() => handleNotificationClick(notification)}
+              className={`p-4 flex items-start gap-4 transition-all cursor-pointer hover:bg-surface-container-low ${
                 notification.isRead ? "bg-surface-container-lowest opacity-70" : "bg-primary/5 border-primary/20"
               }`}
             >
@@ -59,7 +71,10 @@ export default function FacultyNotificationsPage() {
               </div>
               {!notification.isRead && (
                 <button
-                  onClick={() => markRead([notification.id])}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    markRead([notification.id]);
+                  }}
                   className="w-8 h-8 rounded-full hover:bg-primary/10 text-primary flex items-center justify-center transition-colors"
                   title="Mark as read"
                 >

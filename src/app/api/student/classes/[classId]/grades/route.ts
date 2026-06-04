@@ -23,43 +23,44 @@ export async function GET(
     
     if (!membership) return errorResponse(ERRORS.FORBIDDEN.message, ERRORS.FORBIDDEN.status);
 
-    // 1. Get Assignments (Posts)
-    const assignments = await prisma.post.findMany({
-      where: { classId, isSubmissionPost: true },
-      select: { id: true, content: true, submissionDeadline: true, createdAt: true }
-    });
-
-    // 2. Get Assessments (from Lessons)
-    const lessons = await prisma.lesson.findMany({
-      where: { classId },
-      include: {
-        assessment: {
-          select: { id: true, title: true, passingScore: true, maxAttempts: true, createdAt: true }
+    // Batch 1: Assignments and Lessons are independent — run concurrently
+    const [assignments, lessons] = await Promise.all([
+      prisma.post.findMany({
+        where: { classId, isSubmissionPost: true },
+        select: { id: true, content: true, submissionDeadline: true, createdAt: true }
+      }),
+      prisma.lesson.findMany({
+        where: { classId },
+        include: {
+          assessment: {
+            select: { id: true, title: true, passingScore: true, maxAttempts: true, createdAt: true }
+          }
         }
-      }
-    });
+      }),
+    ]);
+
     const assessments = lessons.filter(l => l.assessment).map(l => ({
       lessonId: l.id,
       lessonTitle: l.title,
       ...l.assessment!
     }));
 
-    // 3. Get Student's Submissions
-    const submissions = await prisma.submission.findMany({
-      where: {
-        studentId,
-        postId: { in: assignments.map(a => a.id) }
-      }
-    });
-
-    // 4. Get Student's Assessment Attempts
-    const attempts = await prisma.assessmentAttempt.findMany({
-      where: {
-        studentId,
-        assessmentId: { in: assessments.map(a => a.id) }
-      },
-      orderBy: { attemptNumber: 'desc' }
-    });
+    // Batch 2: Submissions and Attempts depend on batch 1 IDs but are independent of each other
+    const [submissions, attempts] = await Promise.all([
+      prisma.submission.findMany({
+        where: {
+          studentId,
+          postId: { in: assignments.map(a => a.id) }
+        }
+      }),
+      prisma.assessmentAttempt.findMany({
+        where: {
+          studentId,
+          assessmentId: { in: assessments.map(a => a.id) }
+        },
+        orderBy: { attemptNumber: 'desc' }
+      }),
+    ]);
 
     // Normalize into a single unified feed
     const feed = [];

@@ -146,6 +146,7 @@ export async function POST(request: NextRequest) {
         type:        "NEW_SUBMISSION",
         message:     `${profile.name} submitted an assignment for "${preview}".`,
         referenceId: post.id,
+        link:        `/faculty/classes/${post.classId}/assignments`,
       });
     } catch (notifError) {
       console.warn("[POST /api/submissions] Notification failed:", notifError);

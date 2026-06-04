@@ -1,35 +1,109 @@
-"use client";
-
-import React, { useState } from "react";
+import React from "react";
 import StatCard from "@/components/shared/StatCard";
 import StudentAnalytics from "@/components/student/StudentAnalytics";
-import { useAuthStore } from "@/store/auth.store";
-import { useClasses } from "@/hooks/use-class";
-import { usePosts } from "@/hooks/use-posts";
-import { useNotifications } from "@/hooks/use-notifications";
+import RecentFeedPreview from "@/components/student/RecentFeedPreview";
+import { getAuthSession } from "@/lib/auth-session";
+import prisma from "@/lib/prisma";
+import { redirect } from "next/navigation";
+import Link from "next/link";
 
-export default function StudentDashboardPage() {
-  const { profile } = useAuthStore();
-  
-  const { data: classes = [], isLoading: isLoadingClasses } = useClasses();
-  // Fetch posts for all classes by passing empty string for classId.
-  // The API allows omitting classId to fetch across all classes.
-  const { data: posts = [], isLoading: isLoadingPosts } = usePosts("");
-  const { data: notifData } = useNotifications();
-  const notifications = notifData?.notifications || [];
+export const dynamic = "force-dynamic";
 
-  const unreadPosts = notifications.filter((n) => !n.isRead && n.type === "NEW_POST").length;
-  // Pending submissions could be computed, mock it as 0 for now since it's a derived stat.
-  const pendingSubmissions = 0; 
+export default async function StudentDashboardPage() {
+  const session = await getAuthSession();
+  if (!session || session.profile.role !== "STUDENT") {
+    redirect("/login");
+  }
 
-  const isLoading = isLoadingClasses || isLoadingPosts;
+  const studentId = session.profile.id;
+
+  // 1. Unified Backend Aggregation via Promise.all
+  const [
+    activeClassesCount,
+    pendingTasksCount,
+    completedTasksCount,
+    upcomingDeadlines,
+    recentActivity,
+    analyticsPosts
+  ] = await Promise.all([
+    // a) Active Classes Count
+    prisma.classMembership.count({
+      where: { studentId }
+    }),
+
+    // b) Pending Tasks Count
+    prisma.post.count({
+      where: {
+        isSubmissionPost: true,
+        class: { members: { some: { studentId } } },
+        submissions: { none: { studentId } }
+      }
+    }),
+
+    // c) Completed Tasks (Recent Grades) Count
+    prisma.submission.count({
+      where: {
+        studentId,
+        status: "REVIEWED"
+      }
+    }),
+
+    // d) Upcoming Deadlines (next 5 pending assignments)
+    prisma.post.findMany({
+      where: {
+        isSubmissionPost: true,
+        class: { members: { some: { studentId } } },
+        submissions: { none: { studentId } },
+        submissionDeadline: { gte: new Date() }
+      },
+      orderBy: { submissionDeadline: "asc" },
+      take: 5,
+      include: { class: { select: { id: true, name: true, classCode: true } } }
+    }),
+
+    // e) Recent Activity (latest 5 standard announcements)
+    prisma.post.findMany({
+      where: {
+        isSubmissionPost: false,
+        class: { members: { some: { studentId } } }
+      },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+      include: {
+        class: { select: { id: true, name: true, classCode: true } },
+        author: { select: { id: true, name: true, role: true } },
+        _count: { select: { files: true, comments: true } }
+      }
+    }),
+
+    // f) Minimal posts for StudentAnalytics hydration
+    prisma.post.findMany({
+      where: { class: { members: { some: { studentId } } } },
+      select: { 
+        id: true,
+        createdAt: true, 
+        isSubmissionPost: true, 
+        submissionDeadline: true,
+        _count: { select: { files: true } } 
+      }
+    })
+  ]);
+
+  // For StudentAnalytics, it expects `files: []` instead of `_count: { files }` in its calculation
+  // Let's format the posts for the Recharts client component
+  const formattedAnalyticsPosts = analyticsPosts.map(p => ({
+    ...p,
+    createdAt: p.createdAt.toISOString(),
+    submissionDeadline: p.submissionDeadline?.toISOString() || null,
+    files: Array.from({ length: p._count.files }) // Fake array length to satisfy `files.length > 0` checks
+  }));
 
   return (
     <>
       <div className="hidden md:flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
         <div>
           <h2 className="font-headline-xl text-headline-xl text-primary tracking-tight">
-            Welcome back, {profile?.name?.split(" ")[0] || "Student"}!
+            Welcome back, {session.profile.name?.split(" ")[0] || "Student"}!
           </h2>
           <p className="font-body-lg text-body-lg text-on-surface-variant mt-2 max-w-2xl">
             Here&apos;s your current overview and recent class activity.
@@ -37,47 +111,103 @@ export default function StudentDashboardPage() {
         </div>
       </div>
 
-      {/* Quick Stats */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <StatCard
-          label="My Sections"
-          value={classes.length.toString()}
-          icon="school"
-          iconBg="bg-primary-fixed"
-          iconColor="text-on-primary-fixed"
-        />
-        <StatCard
-          label="Unread Posts"
-          value={unreadPosts.toString()}
-          icon="forum"
-          iconBg="bg-secondary-fixed"
-          iconColor="text-on-secondary-fixed"
-        />
-        <StatCard
-          label="Pending Submissions"
-          value={pendingSubmissions.toString()}
-          icon="assignment_late"
-          iconBg="bg-tertiary-fixed"
-          iconColor="text-on-tertiary-fixed"
-          isAlert={pendingSubmissions > 0}
-          alertLabel="Due Soon"
-        />
-      </section>
-
-      {isLoading ? (
-        <div className="py-12 text-center text-on-surface-variant font-body-lg">
-          Loading dashboard...
+      {/* Graceful Empty State */}
+      {activeClassesCount === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 px-4 bg-surface-container-lowest border border-outline-variant/30 rounded-2xl shadow-sm text-center">
+          <div className="w-20 h-20 bg-primary/10 text-primary rounded-full flex items-center justify-center mb-6">
+            <span className="material-symbols-outlined text-[40px]">school</span>
+          </div>
+          <h3 className="text-2xl font-bold text-on-surface mb-3">Welcome to your Dashboard!</h3>
+          <p className="text-on-surface-variant max-w-md text-lg mb-8">
+            You aren&apos;t enrolled in any classes yet. Join your first class to see your stats, assignments, and activity!
+          </p>
+          <Link
+            href="/student/classes"
+            className="bg-primary text-on-primary px-6 py-3 rounded-xl font-label-lg hover:bg-primary/90 transition-colors shadow-sm"
+          >
+            Find a Class
+          </Link>
         </div>
       ) : (
-        <div className="flex flex-col gap-8">
-          {/* Advanced Analytics Panel */}
+        <>
+          {/* Quick Stats */}
+          <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <StatCard
+              label="Active Classes"
+              value={activeClassesCount.toString()}
+              icon="school"
+              iconBg="bg-primary-fixed"
+              iconColor="text-on-primary-fixed"
+            />
+            <StatCard
+              label="Pending Tasks"
+              value={pendingTasksCount.toString()}
+              icon="assignment_late"
+              iconBg="bg-tertiary-fixed"
+              iconColor="text-on-tertiary-fixed"
+              isAlert={pendingTasksCount > 0}
+              alertLabel={pendingTasksCount > 0 ? "Due Soon" : undefined}
+            />
+            <StatCard
+              label="Completed Tasks"
+              value={completedTasksCount.toString()}
+              icon="task_alt"
+              iconBg="bg-secondary-fixed"
+              iconColor="text-on-secondary-fixed"
+            />
+          </section>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+            <div className="lg:col-span-2">
+              <RecentFeedPreview posts={recentActivity as any} />
+            </div>
+
+            <div className="flex flex-col gap-6">
+              <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-6 shadow-sm">
+                <h3 className="font-headline-md text-on-surface mb-6 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-tertiary">calendar_clock</span>
+                  Upcoming Deadlines
+                </h3>
+                {upcomingDeadlines.length > 0 ? (
+                  <div className="flex flex-col gap-4">
+                    {upcomingDeadlines.map((post) => (
+                      <Link
+                        key={post.id}
+                        href={`/student/classes/${post.classId}/assignments`}
+                        className="flex flex-col gap-1 p-3 rounded-lg border border-outline-variant/50 hover:bg-surface-container-low transition-colors group"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-label-md text-on-surface truncate group-hover:text-primary transition-colors">
+                            {post.class.name}
+                          </span>
+                          <span className="bg-tertiary-container text-on-tertiary-container px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider shrink-0">
+                            Assignment
+                          </span>
+                        </div>
+                        <p className="font-label-sm text-tertiary font-medium flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[14px]">event</span>
+                          Due {new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(post.submissionDeadline!))}
+                        </p>
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-on-surface-variant font-body-md bg-surface-container-low/50 rounded-lg border border-outline-variant/30">
+                    No upcoming deadlines!
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
           <section>
             <h3 className="font-headline-lg text-headline-lg text-on-surface mb-6">
               Activity Overview
             </h3>
-            <StudentAnalytics posts={posts} />
+            {/* Cast as any due to the mapped fake files array for the client component */}
+            <StudentAnalytics posts={formattedAnalyticsPosts as any} />
           </section>
-        </div>
+        </>
       )}
     </>
   );

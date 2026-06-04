@@ -22,6 +22,10 @@ interface GradesDashboardProps {
 export function StudentGradesDashboard({ data }: GradesDashboardProps) {
   const { feed, stats } = data;
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
+  const [activeTab, setActiveTab] = useState<"todo" | "completed">("todo");
+
+  const todoFeed = useMemo(() => feed.filter(item => item.status === 'MISSING' || item.status === 'IN_PROGRESS'), [feed]);
+  const completedFeed = useMemo(() => feed.filter(item => item.status !== 'MISSING' && item.status !== 'IN_PROGRESS'), [feed]);
 
   // Prepare data for the chart (only graded items chronologically)
   const chartData = useMemo(() => {
@@ -123,16 +127,41 @@ export function StudentGradesDashboard({ data }: GradesDashboardProps) {
         </Card>
       )}
 
-      {/* 3. Unified Timeline Feed */}
+      {/* 3. Task Tracker Feed */}
       <Card className="rounded-2xl border border-outline-variant/30 shadow-sm bg-surface-container-lowest overflow-hidden">
-        <div className="p-6 border-b border-outline-variant/30 bg-surface-container/30">
-          <h3 className="text-lg font-bold text-on-surface">All Assignments & Assessments</h3>
+        <div className="flex border-b border-outline-variant/30 bg-surface-container/30">
+          <button
+            className={`flex-1 py-4 text-center font-bold text-sm transition-colors border-b-2 ${
+              activeTab === "todo" ? "border-primary text-primary bg-primary/5" : "border-transparent text-on-surface-variant hover:text-on-surface hover:bg-surface-container"
+            }`}
+            onClick={() => setActiveTab("todo")}
+          >
+            To Do ({todoFeed.length})
+          </button>
+          <button
+            className={`flex-1 py-4 text-center font-bold text-sm transition-colors border-b-2 ${
+              activeTab === "completed" ? "border-green-600 text-green-600 bg-green-50/50" : "border-transparent text-on-surface-variant hover:text-on-surface hover:bg-surface-container"
+            }`}
+            onClick={() => setActiveTab("completed")}
+          >
+            Completed ({completedFeed.length})
+          </button>
         </div>
         <div className="divide-y divide-outline-variant/20">
-          {feed.length === 0 ? (
-            <div className="p-12 text-center text-on-surface-variant">No tasks found for this class.</div>
+          {(activeTab === "todo" ? todoFeed : completedFeed).length === 0 ? (
+            <div className="p-12 text-center flex flex-col items-center gap-4">
+              <div className="w-16 h-16 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant">
+                <CheckCircle2 className="w-8 h-8" />
+              </div>
+              <div>
+                <h4 className="text-lg font-bold text-on-surface">All caught up!</h4>
+                <p className="text-on-surface-variant mt-1">
+                  {activeTab === "todo" ? "You have no pending assignments or assessments." : "You haven't completed any tasks yet."}
+                </p>
+              </div>
+            </div>
           ) : (
-            feed.map((item) => (
+            (activeTab === "todo" ? todoFeed : completedFeed).map((item) => (
               <div 
                 key={item.id} 
                 className={`p-4 sm:p-6 flex flex-col sm:flex-row gap-4 sm:items-center justify-between transition-colors ${

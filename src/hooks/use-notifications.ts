@@ -21,8 +21,9 @@ export function useNotifications(unreadOnly = false) {
   // REAL-TIME: Subscribe to Supabase Realtime for instant updates
   useEffect(() => {
     const supabase = createClient();
+    const channelId = Math.random().toString(36).substring(2, 11);
     const channel = supabase
-      .channel("notifications-realtime")
+      .channel(`notifications-realtime-${channelId}`)
       .on(
         "postgres_changes",
         {
@@ -79,6 +80,35 @@ export function useMarkNotificationsRead() {
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: ["notifications"] })
+    },
+  });
+}
+
+export function useClearReadNotifications() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => apiClient.delete<{ deletedCount: number }>("/api/notifications"),
+    onMutate: async () => {
+      await qc.cancelQueries({ queryKey: ["notifications"] });
+      const previous = qc.getQueryData(["notifications"]);
+
+      qc.setQueryData<any>(
+        ["notifications", { unreadOnly: false }],
+        (old: any) => {
+          if (!old) return old;
+          return {
+            ...old,
+            notifications: old.notifications.filter((n: any) => !n.isRead),
+          };
+        }
+      );
+      return { previous };
+    },
+    onError: (_, __, ctx) => {
+      qc.setQueryData(["notifications"], ctx?.previous);
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["notifications"] });
     },
   });
 }

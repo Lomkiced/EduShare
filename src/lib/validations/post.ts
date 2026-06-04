@@ -15,6 +15,7 @@ export const createPostSchema = z.object({
   isPinned: z.boolean().default(false),
   isSubmissionPost: z.boolean().default(false),
   submissionDeadline: z.string().datetime().optional().nullable(),
+  attachedLink: z.string().url("Attached link must be a valid URL (e.g. https://...)").optional().nullable(),
   files: z
     .array(
       z.object({

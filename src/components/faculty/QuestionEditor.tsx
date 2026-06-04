@@ -5,6 +5,7 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { Plus, Trash2 } from "lucide-react";
 import type { AssessmentType } from "@/types";
 import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/shared/LoadingButton";
 import { cn } from "@/lib/utils";
 
 interface QuestionEditorProps {
@@ -235,13 +236,15 @@ export default function QuestionEditor({ type, onSave, onCancel, isSaving }: Que
         <Button variant="ghost" onClick={onCancel} disabled={isSaving}>
           Cancel
         </Button>
-        <Button
+        <LoadingButton
           onClick={handleSave}
-          disabled={isSaving || !questionText.trim()}
-          className="bg-primary text-on-primary hover:opacity-90"
+          disabled={!questionText.trim()}
+          isLoading={isSaving ?? false}
+          loadingText="Saving..."
+          variant="primary"
         >
-          {isSaving ? "Saving..." : "Save Question"}
-        </Button>
+          Save Question
+        </LoadingButton>
       </div>
     </div>
   );

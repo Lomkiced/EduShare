@@ -11,6 +11,7 @@ import prisma from "@/lib/prisma";
 import { getAuthSession } from "@/lib/auth-session";
 import { successResponse, errorResponse, ERRORS } from "@/lib/api-response";
 import { updatePostSchema } from "@/lib/validations/post";
+import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -141,7 +142,11 @@ export async function DELETE(
 
     const post = await prisma.post.findUnique({
       where: { id: postId },
-      include: { class: { select: { facultyId: true } } },
+      include: { 
+        class: { select: { facultyId: true } },
+        files: { select: { fileUrl: true } },
+        submissions: { select: { fileUrl: true } }
+      },
     });
     if (!post) return errorResponse(ERRORS.NOT_FOUND.message, ERRORS.NOT_FOUND.status);
 
@@ -154,7 +159,32 @@ export async function DELETE(
       return errorResponse(ERRORS.FORBIDDEN.message, ERRORS.FORBIDDEN.status);
     }
 
-    // Cascade handles PostFile, Comment, Submission, Report
+    // Physical File Cleanup
+    const supabase = createClient();
+    
+    // 1. Delete Post Files
+    const postFilePaths = post.files
+      .filter((f) => f.fileUrl)
+      .map((f) => f.fileUrl.split("post_files/")[1])
+      .filter(Boolean);
+      
+    if (postFilePaths.length > 0) {
+      const { error } = await supabase.storage.from("post_files").remove(postFilePaths);
+      if (error) console.error("[DELETE /api/posts/[postId]] Storage delete (post_files) failed:", error);
+    }
+
+    // 2. Delete associated Submission Files
+    const submissionFilePaths = post.submissions
+      .filter((s) => s.fileUrl)
+      .map((s) => s.fileUrl!.split("submissions/")[1])
+      .filter(Boolean);
+      
+    if (submissionFilePaths.length > 0) {
+      const { error } = await supabase.storage.from("submissions").remove(submissionFilePaths);
+      if (error) console.error("[DELETE /api/posts/[postId]] Storage delete (submissions) failed:", error);
+    }
+
+    // Cascade handles PostFile, Comment, Submission, Report DB records
     await prisma.post.delete({ where: { id: postId } });
 
     return successResponse(null, "Post deleted.");
