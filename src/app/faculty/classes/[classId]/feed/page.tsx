@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React from "react";
 import PostComposer from "@/components/faculty/PostComposer";
 import PostCard from "@/components/shared/PostCard";
 import { Card } from "@/components/ui/card";
@@ -95,11 +95,7 @@ export default function FacultyClassFeedPage() {
   const { data: classData, isLoading: isLoadingClass, isError: isClassError, error: classError } = useClass(classId);
   const { data: posts = [], isLoading: isLoadingPosts, isError: isPostsError, error: postsError } = useFeedPosts(classId);
 
-  const upcomingDeadlines = useMemo(() => {
-    return posts
-      .filter((p) => p.isSubmissionPost && p.submissionDeadline && new Date(p.submissionDeadline) > new Date())
-      .sort((a, b) => new Date(a.submissionDeadline!).getTime() - new Date(b.submissionDeadline!).getTime());
-  }, [posts]);
+  // Upcoming deadlines removed for faculty, replaced with Class Info in the sidebar
 
   if (isLoadingClass || isLoadingPosts) {
     return <FeedSkeleton />;
@@ -134,33 +130,66 @@ export default function FacultyClassFeedPage() {
         {/* Right Utility Column */}
         <div className="col-span-1 lg:col-span-4 hidden lg:block">
           <div className="sticky top-24 space-y-6">
-            {/* Upcoming Deadlines */}
+            {/* Class Details Card */}
             <Card className="border-outline-variant/30 shadow-sm overflow-hidden bg-surface-container-lowest">
-              <div className="bg-tertiary/5 p-4 border-b border-outline-variant/20 flex items-center gap-2">
-                <span className="material-symbols-outlined text-tertiary text-[20px]">upcoming</span>
-                <h3 className="font-semibold text-tertiary">Upcoming Deadlines</h3>
+              <div className="bg-primary/5 p-4 border-b border-outline-variant/20 flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary text-[20px]">info</span>
+                <h3 className="font-semibold text-primary">Class Overview</h3>
               </div>
-              <div className="p-0">
-                {upcomingDeadlines.length > 0 ? (
-                  <div className="flex flex-col divide-y divide-outline-variant/20">
-                    {upcomingDeadlines.map((assignment) => (
-                      <div key={assignment.id} className="p-4 hover:bg-surface-container transition-colors cursor-pointer group">
-                        <div className="text-sm font-medium text-on-surface line-clamp-2 group-hover:text-tertiary transition-colors mb-2 leading-relaxed">
-                          {assignment.content.split(".")[0]}
-                        </div>
-                        <div className="text-xs text-tertiary font-semibold flex items-center gap-1.5 bg-tertiary/10 w-fit px-2 py-1 rounded-md">
-                          <span className="material-symbols-outlined text-[14px]">timer</span>
-                          {formatDate(assignment.submissionDeadline!)}
-                        </div>
-                      </div>
-                    ))}
+              <div className="p-4 space-y-4">
+                {/* Class Code */}
+                <div>
+                  <p className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1">Class Code</p>
+                  <div className="flex items-center justify-between bg-surface-container-low px-3 py-2 rounded-lg border border-outline-variant/30 group">
+                    <span className="font-mono text-sm font-bold text-on-surface">{classData.classCode}</span>
+                    <button 
+                      onClick={() => {
+                        navigator.clipboard.writeText(classData.classCode);
+                      }}
+                      className="text-on-surface-variant hover:text-primary transition-colors focus:outline-none"
+                      title="Copy Class Code"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">content_copy</span>
+                    </button>
                   </div>
-                ) : (
-                  <div className="p-6 text-center flex flex-col items-center gap-2">
-                    <span className="material-symbols-outlined text-[32px] text-on-surface-variant/50">event_available</span>
-                    <span className="text-sm text-on-surface-variant font-medium">No upcoming deadlines!</span>
+                </div>
+
+                {/* Subject & Section */}
+                <div>
+                  <p className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1">Subject & Section</p>
+                  <p className="text-sm font-medium text-on-surface">{classData.subject} — {classData.section}</p>
+                </div>
+
+                {/* Schedule & Room */}
+                {(classData.schedule || classData.room) && (
+                  <div>
+                    <p className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1">Schedule & Room</p>
+                    <div className="flex flex-col gap-1.5 mt-2">
+                      {classData.schedule && (
+                        <div className="flex items-start gap-2 text-sm text-on-surface">
+                          <span className="material-symbols-outlined text-[16px] text-tertiary shrink-0 mt-0.5">schedule</span>
+                          <span>{classData.schedule}</span>
+                        </div>
+                      )}
+                      {classData.room && (
+                        <div className="flex items-start gap-2 text-sm text-on-surface">
+                          <span className="material-symbols-outlined text-[16px] text-tertiary shrink-0 mt-0.5">meeting_room</span>
+                          <span>{classData.room}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
+                
+                {/* Quick Actions */}
+                <div className="pt-2 border-t border-outline-variant/20 flex flex-col gap-2">
+                  <Link href={`/faculty/classes/${classId}/members`} className="w-full">
+                    <Button variant="outline" className="w-full flex items-center gap-2 justify-center" size="sm">
+                      <span className="material-symbols-outlined text-[16px]">group</span>
+                      View Roster
+                    </Button>
+                  </Link>
+                </div>
               </div>
             </Card>
           </div>
