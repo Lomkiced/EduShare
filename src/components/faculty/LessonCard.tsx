@@ -130,7 +130,7 @@ export function LessonCard({
             </div>
 
             {/* Kebab menu */}
-            <DropdownMenu>
+            <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8">
                   <span className="material-symbols-outlined text-[18px]">more_vert</span>
