@@ -11,6 +11,7 @@ const navItems = [
   { label: "User Management", icon: "group", href: "/admin/users" },
   { label: "Sections", icon: "class", href: "/admin/sections" },
   { label: "Reports", icon: "description", href: "/admin/reports" },
+  { label: "Audit Logs", icon: "history", href: "/admin/audit-logs" },
 ];
 
 export default function AdminSidebar() {

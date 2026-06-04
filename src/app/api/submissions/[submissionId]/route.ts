@@ -12,6 +12,7 @@ import { getAuthSession } from "@/lib/auth-session";
 import { successResponse, errorResponse, ERRORS } from "@/lib/api-response";
 import { createNotification } from "@/lib/notifications";
 import { createClient } from "@/lib/supabase/server";
+import { logAction } from "@/lib/audit-logger";
 
 export const dynamic = "force-dynamic";
 
@@ -84,6 +85,18 @@ export async function PATCH(
     } catch (notifError) {
       console.warn("[PATCH /api/submissions/[submissionId]] Notification failed:", notifError);
     }
+
+    await logAction({
+      userId: profile.id,
+      action: "REVIEW_SUBMISSION",
+      resourceType: "SUBMISSION",
+      resourceId: submissionId,
+      details: {
+        studentId: submission.studentId,
+        postId: submission.postId,
+        feedbackProvided: !!parsed.data.feedback
+      }
+    });
 
     return successResponse(updated, "Submission marked as reviewed.");
   } catch (error) {

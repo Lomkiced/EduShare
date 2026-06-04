@@ -10,6 +10,7 @@ import prisma from "@/lib/prisma";
 import { getAuthSession } from "@/lib/auth-session";
 import { successResponse, errorResponse, ERRORS } from "@/lib/api-response";
 import { createReportSchema } from "@/lib/validations/post";
+import { dispatchAdminNotification } from "@/lib/notifications";
 
 export const dynamic = "force-dynamic";
 
@@ -108,6 +109,14 @@ export async function POST(request: NextRequest) {
       include: {
         reporter: { select: { id: true, name: true, email: true, avatarUrl: true, role: true } },
       },
+    });
+
+    // Fire-and-forget admin notification
+    dispatchAdminNotification({
+      type: "NEW_REPORT",
+      message: `A new report has been filed by ${profile.name}. Reason: ${reason}.`,
+      link: "/admin/reports",
+      referenceId: report.id,
     });
 
     return successResponse(report, "Report submitted successfully.", 201);

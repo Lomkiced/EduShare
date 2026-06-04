@@ -12,11 +12,13 @@ import prisma from "@/lib/prisma";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAuthSession } from "@/lib/auth-session";
 import { successResponse, errorResponse, ERRORS } from "@/lib/api-response";
+import { logAction } from "@/lib/audit-logger";
 
 export const dynamic = "force-dynamic";
 
-const toggleStatusSchema = z.object({
-  isActive: z.boolean(),
+const adminUpdateUserSchema = z.object({
+  isActive: z.boolean().optional(),
+  password: z.string().min(6).optional(),
 });
 
 export async function PATCH(
@@ -36,46 +38,93 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const parsed = toggleStatusSchema.safeParse(body);
+    const parsed = adminUpdateUserSchema.safeParse(body);
     if (!parsed.success) {
       return errorResponse(parsed.error.errors[0].message, ERRORS.VALIDATION.status);
     }
 
-    const { isActive } = parsed.data;
+    const { isActive, password } = parsed.data;
 
-    // Update Prisma profile
-    const updatedUser = await prisma.user.update({
+    // Fetch target user for security checks
+    const targetUser = await prisma.user.findUnique({
       where: { id: userId },
-      data:  { isActive },
-      select: {
-        id:         true,
-        name:       true,
-        email:      true,
-        role:       true,
-        department: true,
-        isActive:   true,
-        avatarUrl:  true,
-        createdAt:  true,
-      },
+      select: { role: true },
     });
+    if (!targetUser) return errorResponse("User not found.", 404);
 
-    // Sync with Supabase Auth
+    if (password && targetUser.role === "STUDENT") {
+      return errorResponse("Cannot reset passwords for STUDENT accounts.", 403);
+    }
+
     const adminClient = createAdminClient();
-    if (isActive) {
-      // Restore access — remove ban
-      await adminClient.auth.admin.updateUserById(userId, {
-        ban_duration: "none",
+    
+    // Process password update
+    if (password) {
+      const { error } = await adminClient.auth.admin.updateUserById(userId, { password });
+      if (error) {
+        return errorResponse("Failed to update password.", 500);
+      }
+      
+      await logAction({
+        userId: session.profile.id,
+        action: "ADMIN_PASSWORD_RESET",
+        resourceType: "USER",
+        resourceId: userId,
+        details: { targetRole: targetUser.role },
       });
+    }
+
+    // Process status toggle (if provided)
+    let updatedUser = null;
+    if (isActive !== undefined) {
+      updatedUser = await prisma.user.update({
+        where: { id: userId },
+        data:  { isActive },
+        select: {
+          id:         true,
+          name:       true,
+          email:      true,
+          role:       true,
+          department: true,
+          isActive:   true,
+          avatarUrl:  true,
+          createdAt:  true,
+        },
+      });
+
+      if (isActive) {
+        // Restore access — remove ban
+        await adminClient.auth.admin.updateUserById(userId, { ban_duration: "none" });
+      } else {
+        // Ban user effectively permanently (~10 years)
+        await adminClient.auth.admin.updateUserById(userId, { ban_duration: "87600h" });
+      }
     } else {
-      // Ban user effectively permanently (~10 years)
-      await adminClient.auth.admin.updateUserById(userId, {
-        ban_duration: "87600h",
+      // If only password was updated, just fetch the user to return
+      updatedUser = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          id:         true,
+          name:       true,
+          email:      true,
+          role:       true,
+          department: true,
+          isActive:   true,
+          avatarUrl:  true,
+          createdAt:  true,
+        },
       });
     }
 
     return successResponse(
       updatedUser,
-      isActive ? "User activated." : "User deactivated."
+      password && isActive !== undefined
+        ? "User updated successfully."
+        : password
+        ? "Password reset successfully."
+        : isActive
+        ? "User activated."
+        : "User deactivated."
     );
   } catch (error) {
     console.error("[PATCH /api/admin/users/[userId]]", error);
