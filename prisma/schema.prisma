@@ -97,6 +97,7 @@ model User {
   // Phase 2
   lessonProgress     LessonProgress[]
   assessmentAttempts AssessmentAttempt[]
+  auditLogs          AuditLog[]
 
   @@map("users")
 }
@@ -443,4 +444,22 @@ model StudentAnswer {
   @@index([attemptId])
   @@index([questionId])
   @@map("student_answers")
+}
+
+/// Immutable Audit Log for Admin tracking
+model AuditLog {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action       String   // e.g. "DELETE_POST", "REVIEW_SUBMISSION"
+  resourceType String   // e.g. "POST", "SUBMISSION"
+  resourceId   String   // the ID of the resource affected
+  details      Json     // Snapshot of before/after state
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+  @@index([resourceId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
 }

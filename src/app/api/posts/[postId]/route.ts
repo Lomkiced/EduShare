@@ -12,6 +12,7 @@ import { getAuthSession } from "@/lib/auth-session";
 import { successResponse, errorResponse, ERRORS } from "@/lib/api-response";
 import { updatePostSchema } from "@/lib/validations/post";
 import { createClient } from "@/lib/supabase/server";
+import { logAction } from "@/lib/audit-logger";
 
 export const dynamic = "force-dynamic";
 
@@ -186,6 +187,19 @@ export async function DELETE(
 
     // Cascade handles PostFile, Comment, Submission, Report DB records
     await prisma.post.delete({ where: { id: postId } });
+
+    await logAction({
+      userId: profile.id,
+      action: "DELETE_POST",
+      resourceType: "POST",
+      resourceId: postId,
+      details: {
+        postContentSnippet: post.content ? post.content.substring(0, 50) : "",
+        classId: post.classId,
+        authorId: post.authorId,
+        deletedByRole: profile.role
+      }
+    });
 
     return successResponse(null, "Post deleted.");
   } catch (error) {

@@ -18,6 +18,10 @@ export type NotificationType =
   | "SUBMISSION_REVIEWED"
   | "REPORT_RESOLVED"
   | "CLASS_JOINED"
+  // Admin
+  | "NEW_REPORT"
+  | "USER_REGISTERED"
+  | "SYSTEM_ALERT"
   // Phase 2
   | "LESSON_PUBLISHED"
   | "LESSON_COMPLETED"
@@ -82,4 +86,34 @@ export async function createBulkNotifications(
     })),
     skipDuplicates: true,
   });
+}
+
+// ─── Admin Notifications ──────────────────────────────────────────────────────
+
+/**
+ * Dispatches a notification to all active ADMIN users.
+ */
+export async function dispatchAdminNotification(payload: {
+  type: NotificationType;
+  message: string;
+  referenceId?: string;
+  link?: string;
+}): Promise<void> {
+  try {
+    const admins = await prisma.user.findMany({
+      where: { role: "ADMIN", isActive: true },
+      select: { id: true },
+    });
+
+    const adminIds = admins.map((a) => a.id);
+    await createBulkNotifications(
+      adminIds,
+      payload.type,
+      payload.message,
+      payload.referenceId,
+      payload.link
+    );
+  } catch (error) {
+    console.error("[dispatchAdminNotification] Failed:", error);
+  }
 }

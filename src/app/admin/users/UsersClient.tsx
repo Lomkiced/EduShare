@@ -5,6 +5,8 @@ import { useToggleUserStatus } from "@/hooks/use-admin";
 import { useRouter } from "next/navigation";
 import type { UserProfile } from "@/types";
 import { AddUserModal } from "@/components/admin/AddUserModal";
+import * as Dialog from "@radix-ui/react-dialog";
+import { toast } from "sonner";
 
 interface UsersClientProps {
   initialUsers: UserProfile[];
@@ -16,6 +18,7 @@ export default function UsersClient({ initialUsers }: UsersClientProps) {
   const [roleFilter, setRoleFilter] = useState("All Roles");
   const [departmentFilter, setDepartmentFilter] = useState("All Departments");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
 
   const { mutate: toggleStatus, isPending } = useToggleUserStatus();
 
@@ -68,6 +71,15 @@ export default function UsersClient({ initialUsers }: UsersClientProps) {
         onOpenChange={setIsModalOpen}
         onSuccess={() => {
           setIsModalOpen(false);
+          router.refresh();
+        }}
+      />
+
+      <EditUserModal 
+        user={editingUser}
+        onClose={() => setEditingUser(null)}
+        onSuccess={() => {
+          setEditingUser(null);
           router.refresh();
         }}
       />
@@ -155,6 +167,7 @@ export default function UsersClient({ initialUsers }: UsersClientProps) {
                   key={user.id}
                   user={user}
                   onToggleStatus={() => handleToggleStatus(user.id, user.isActive)}
+                  onEdit={() => setEditingUser(user)}
                   isPending={isPending}
                 />
               ))}
@@ -193,10 +206,12 @@ export default function UsersClient({ initialUsers }: UsersClientProps) {
 function UserTableRow({
   user,
   onToggleStatus,
+  onEdit,
   isPending,
 }: {
   user: UserProfile;
   onToggleStatus: () => void;
+  onEdit: () => void;
   isPending: boolean;
 }) {
   const getInitials = (name: string) => {
@@ -257,14 +272,17 @@ function UserTableRow({
       </td>
       <td className="py-3 px-6 text-right">
         <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity focus-within:opacity-100">
-          <button
-            className="p-1.5 text-on-surface-variant hover:text-primary transition-colors rounded-DEFAULT hover:bg-surface-container-low"
-            title="Edit"
-          >
-            <span className="material-symbols-outlined text-[18px]" data-icon="edit">
-              edit
-            </span>
-          </button>
+          {!isStudent && (
+            <button
+              onClick={onEdit}
+              className="p-1.5 text-on-surface-variant hover:text-primary transition-colors rounded-DEFAULT hover:bg-surface-container-low"
+              title="Edit Password"
+            >
+              <span className="material-symbols-outlined text-[18px]" data-icon="edit">
+                edit
+              </span>
+            </button>
+          )}
           <button
             onClick={onToggleStatus}
             disabled={isPending}
@@ -286,5 +304,127 @@ function UserTableRow({
         </div>
       </td>
     </tr>
+  );
+}
+
+function EditUserModal({ 
+  user, 
+  onClose,
+  onSuccess
+}: { 
+  user: UserProfile | null, 
+  onClose: () => void,
+  onSuccess: () => void
+}) {
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  if (!user) return null;
+
+  const passwordsMatch = newPassword === confirmPassword;
+  const isValidLength = newPassword.length >= 6;
+  const isFormValid = isValidLength && passwordsMatch;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isFormValid) {
+      if (!isValidLength) toast.error("Password must be at least 6 characters.");
+      else if (!passwordsMatch) toast.error("Passwords do not match.");
+      return;
+    }
+    
+    setIsSubmitting(true);
+    try {
+      const res = await fetch(`/api/admin/users/${user.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: newPassword })
+      });
+      const data = await res.json();
+      
+      if (!res.ok) throw new Error(data.error || "Failed to update password");
+      
+      toast.success("Password reset successfully.");
+      setNewPassword("");
+      setConfirmPassword("");
+      onSuccess();
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog.Root open={!!user} onOpenChange={(open) => !open && onClose()}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 bg-black/50 z-40" />
+        <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-surface-container-lowest p-6 rounded-xl shadow-lg z-50 w-full max-w-md border border-slate-100">
+          <div className="flex justify-between items-center mb-4">
+            <Dialog.Title className="text-xl font-bold">Edit User</Dialog.Title>
+            <Dialog.Close className="text-on-surface-variant hover:text-on-surface">
+              <span className="material-symbols-outlined">close</span>
+            </Dialog.Close>
+          </div>
+          
+          <div className="mb-4">
+            <p className="text-sm text-on-surface-variant">Resetting password for:</p>
+            <div className="font-medium">{user.name}</div>
+            <div className="text-xs text-on-surface-variant capitalize">{user.role.toLowerCase()}</div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">New Password</label>
+              <input 
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-primary"
+                placeholder="Enter new password (min 6 chars)"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Confirm Password</label>
+              <input 
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-1 ${
+                  confirmPassword.length > 0 && !passwordsMatch 
+                    ? "border-error focus:ring-error" 
+                    : "focus:ring-primary"
+                }`}
+                placeholder="Confirm your new password"
+                required
+              />
+              {confirmPassword.length > 0 && !passwordsMatch && (
+                <p className="text-xs text-error mt-1">Passwords do not match</p>
+              )}
+            </div>
+            
+            <div className="flex justify-end gap-2 pt-4">
+              <button 
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 border rounded-md text-sm hover:bg-surface-container-low"
+              >
+                Cancel
+              </button>
+              <button 
+                type="submit"
+                disabled={isSubmitting || !isFormValid}
+                className="px-4 py-2 bg-primary text-white rounded-md text-sm hover:bg-primary/90 disabled:opacity-50"
+              >
+                {isSubmitting ? "Saving..." : "Save Password"}
+              </button>
+            </div>
+          </form>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }
