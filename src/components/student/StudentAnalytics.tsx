@@ -92,7 +92,7 @@ export default function StudentAnalytics({ posts }: StudentAnalyticsProps) {
           <span className="material-symbols-outlined text-primary">insights</span>
           7-Day Activity Trend
         </h3>
-        <div className="h-[250px] w-full">
+        <div className="h-[250px] w-full min-w-0">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={activityData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
               <XAxis dataKey="display" axisLine={false} tickLine={false} tick={{ fill: "currentColor", opacity: 0.6, fontSize: 12 }} dy={10} />
@@ -116,7 +116,7 @@ export default function StudentAnalytics({ posts }: StudentAnalyticsProps) {
             <span className="material-symbols-outlined text-secondary">pie_chart</span>
             Resource Breakdown
           </h3>
-          <div className="h-[180px] w-full flex-1">
+          <div className="h-[180px] w-full flex-1 min-w-0">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie

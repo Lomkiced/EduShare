@@ -19,9 +19,8 @@ export async function approveStudent(userId: string, classId: string) {
 
 export async function rejectStudent(userId: string, classId: string) {
   try {
-    // If we reject them, we delete the user so they can register again if they made a mistake,
-    // or we can set them to REJECTED. Setting to REJECTED blocks the email. Let's set to REJECTED.
-    // Also remove their class membership.
+    // Safely remove their class membership and set them back to REJECTED.
+    // We no longer attempt to delete the User account, preserving data integrity.
     await prisma.$transaction([
       prisma.classMembership.deleteMany({
         where: { studentId: userId, classId: classId },
@@ -42,7 +41,7 @@ export async function rejectStudent(userId: string, classId: string) {
 
 export async function removeStudent(userId: string, classId: string) {
   try {
-    // 1. Delete the class membership
+    // 1. Delete the class membership to remove them from the roster
     await prisma.classMembership.deleteMany({
       where: { studentId: userId, classId: classId },
     });
@@ -52,20 +51,13 @@ export async function removeStudent(userId: string, classId: string) {
       where: { studentId: userId },
     });
 
-    // 3. If they have no other classes, completely purge the account
+    // 3. If this was their only class, safely set their platform status back to PENDING.
+    // This allows them to join another class and be re-evaluated, without destroying their account.
     if (remainingMemberships === 0) {
-      await prisma.user.delete({
+      await prisma.user.update({
         where: { id: userId },
+        data: { approvalStatus: "PENDING" },
       });
-
-      // Attempt to delete from Supabase Auth as well
-      try {
-        const { createAdminClient } = await import("@/lib/supabase/admin");
-        const adminClient = createAdminClient();
-        await adminClient.auth.admin.deleteUser(userId);
-      } catch (authError) {
-        console.error("[removeStudent] Failed to delete from Supabase Auth:", authError);
-      }
     }
 
     revalidatePath(`/faculty/classes/${classId}/members`);

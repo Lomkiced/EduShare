@@ -21,6 +21,7 @@ export default async function StudentDashboardPage() {
   const [
     activeClassesCount,
     pendingTasksCount,
+    missedTasksCount,
     completedTasksCount,
     upcomingDeadlines,
     recentActivity,
@@ -31,12 +32,26 @@ export default async function StudentDashboardPage() {
       where: { studentId }
     }),
 
-    // b) Pending Tasks Count
+    // b) Pending Tasks Count (Future deadline or no deadline)
     prisma.post.count({
       where: {
         isSubmissionPost: true,
         class: { members: { some: { studentId } } },
-        submissions: { none: { studentId } }
+        submissions: { none: { studentId } },
+        OR: [
+          { submissionDeadline: { gte: new Date() } },
+          { submissionDeadline: null }
+        ]
+      }
+    }),
+
+    // b2) Missed Tasks Count (Past deadline)
+    prisma.post.count({
+      where: {
+        isSubmissionPost: true,
+        class: { members: { some: { studentId } } },
+        submissions: { none: { studentId } },
+        submissionDeadline: { lt: new Date() }
       }
     }),
 
@@ -131,7 +146,7 @@ export default async function StudentDashboardPage() {
       ) : (
         <>
           {/* Quick Stats */}
-          <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
             <StatCard
               label="Active Classes"
               value={activeClassesCount.toString()}
@@ -142,11 +157,20 @@ export default async function StudentDashboardPage() {
             <StatCard
               label="Pending Tasks"
               value={pendingTasksCount.toString()}
-              icon="assignment_late"
+              icon="pending_actions"
               iconBg="bg-tertiary-fixed"
               iconColor="text-on-tertiary-fixed"
               isAlert={pendingTasksCount > 0}
-              alertLabel={pendingTasksCount > 0 ? "Due Soon" : undefined}
+              alertLabel={pendingTasksCount > 0 ? "To Do" : undefined}
+            />
+            <StatCard
+              label="Missed Tasks"
+              value={missedTasksCount.toString()}
+              icon="assignment_late"
+              iconBg="bg-error/10"
+              iconColor="text-error"
+              isAlert={missedTasksCount > 0}
+              alertLabel={missedTasksCount > 0 ? "Overdue" : undefined}
             />
             <StatCard
               label="Completed Tasks"

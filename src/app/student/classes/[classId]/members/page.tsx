@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { UserAvatar } from "@/components/shared/user-avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ import { useClass, useClassMembers } from "@/hooks/use-class";
 
 export default function StudentClassMembersPage() {
   const params  = useParams();
+  const router  = useRouter();
   const classId = params.classId as string;
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -85,7 +86,10 @@ export default function StudentClassMembersPage() {
               </CardContent>
             </Card>
           ) : instructor ? (
-            <Card className="border-outline-variant/30 shadow-sm bg-surface-container-lowest hover:shadow-md transition-all duration-300 w-full md:w-1/2 lg:w-1/3">
+            <Card 
+              className="border-outline-variant/30 shadow-sm bg-surface-container-lowest hover:shadow-md transition-all duration-300 w-full md:w-1/2 lg:w-1/3 cursor-pointer"
+              onClick={() => router.push(`/student/users/${instructor.id}`)}
+            >
               <CardContent className="p-5 flex items-center gap-4">
                 <UserAvatar name={instructor.name} avatarUrl={instructor.avatarUrl} size="lg" />
                 <div className="flex flex-col flex-1 min-w-0">
@@ -138,7 +142,8 @@ export default function StudentClassMembersPage() {
               {filteredPeers.map((membership) => (
                 <Card
                   key={membership.id}
-                  className="border-outline-variant/30 shadow-sm bg-surface-container-lowest hover:shadow-md hover:border-primary/30 transition-all duration-300"
+                  className="border-outline-variant/30 shadow-sm bg-surface-container-lowest hover:shadow-md hover:border-primary/30 transition-all duration-300 cursor-pointer"
+                  onClick={() => router.push(`/student/users/${membership.student.id}`)}
                 >
                   <CardContent className="p-5 flex flex-col items-center text-center gap-3">
                     <UserAvatar name={membership.student.name} avatarUrl={membership.student.avatarUrl} size="lg" />

@@ -121,7 +121,7 @@ export default function AdminDashboardAnalytics({
           </div>
         </div>
 
-        <div className="flex-1 w-full min-h-[250px]">
+        <div className="flex-1 w-full min-h-[250px] min-w-0">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={activityData} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e0e3e5" vertical={false} />
@@ -156,7 +156,7 @@ export default function AdminDashboardAnalytics({
           <div className="mb-2">
             <h3 className="font-headline-md text-on-surface">User Demographics</h3>
           </div>
-          <div className="flex-1 min-h-[180px] w-full relative">
+          <div className="flex-1 min-h-[180px] w-full relative min-w-0">
             {demoData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -182,7 +182,7 @@ export default function AdminDashboardAnalytics({
           <div className="mb-2">
             <h3 className="font-headline-md text-on-surface">System Reports Health</h3>
           </div>
-          <div className="flex-1 min-h-[180px] w-full">
+          <div className="flex-1 min-h-[180px] w-full min-w-0">
             {reportData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={reportData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }} layout="vertical">

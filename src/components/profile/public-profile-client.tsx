@@ -19,7 +19,7 @@ export default function PublicProfileClient({ user }: PublicProfileClientProps) 
     .join("")
     .toUpperCase();
 
-  const DEPARTMENT_NAME = "COLLEGE OF INFORMATION TECHNOLOGY";
+
 
   return (
     <div className="container max-w-6xl py-8 space-y-8 animate-in fade-in duration-500">
@@ -50,7 +50,7 @@ export default function PublicProfileClient({ user }: PublicProfileClientProps) 
             <div className="flex flex-wrap items-center gap-4 text-muted-foreground">
               <div className="flex items-center gap-1.5">
                 <Briefcase className="w-4 h-4" />
-                <span>{DEPARTMENT_NAME}</span>
+                <span>{user.department || "No department listed"}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <Calendar className="w-4 h-4" />

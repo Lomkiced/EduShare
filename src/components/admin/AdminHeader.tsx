@@ -129,25 +129,7 @@ export default function AdminHeader() {
         </button>
       </div>
 
-      {/* Center — Search Bar */}
-      <div className="flex-1 max-w-md mx-6 hidden sm:block relative group">
-        <span
-          className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline group-focus-within:text-secondary transition-colors"
-          style={{ fontVariationSettings: "'FILL' 0" }}
-        >
-          search
-        </span>
-        <input
-          type="text"
-          placeholder="Search users, resources, or settings..."
-          className="w-full pl-10 pr-12 py-2 bg-surface-container-lowest border border-surface-variant rounded-xl focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary text-sm transition-all text-on-surface shadow-sm"
-        />
-        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center">
-          <kbd className="hidden sm:inline-flex items-center justify-center px-1.5 py-0.5 border border-surface-variant rounded text-[10px] font-medium text-outline bg-surface-container-low">
-            ⌘K
-          </kbd>
-        </div>
-      </div>
+
 
       {/* Right Side */}
       <div className="flex items-center gap-3">

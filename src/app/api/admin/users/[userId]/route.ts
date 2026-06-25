@@ -131,3 +131,62 @@ export async function PATCH(
     return errorResponse(ERRORS.INTERNAL.message, ERRORS.INTERNAL.status);
   }
 }
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { userId: string } }
+) {
+  try {
+    const session = await getAuthSession();
+    if (!session) return errorResponse(ERRORS.UNAUTHORIZED.message, ERRORS.UNAUTHORIZED.status);
+    if (session.profile.role !== "ADMIN") return errorResponse(ERRORS.FORBIDDEN.message, ERRORS.FORBIDDEN.status);
+
+    const { userId } = params;
+
+    // Prevent self-deletion
+    if (userId === session.profile.id) {
+      return errorResponse("You cannot delete your own account.", 400);
+    }
+
+    // Fetch target user for security checks
+    const targetUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true, isActive: true },
+    });
+
+    if (!targetUser) return errorResponse("User not found.", 404);
+
+    // Safeguard: Only allow deletion if the account is deactivated
+    if (targetUser.isActive) {
+      return errorResponse("Account must be deactivated before it can be deleted.", 400);
+    }
+
+    const adminClient = createAdminClient();
+
+    // 1. Delete from database
+    await prisma.user.delete({
+      where: { id: userId },
+    });
+
+    // 2. Delete from Supabase Auth
+    const { error: authError } = await adminClient.auth.admin.deleteUser(userId);
+    if (authError) {
+       console.error("[DELETE /api/admin/users/[userId]] Supabase Auth Delete Error:", authError);
+       // We log it, but the DB delete was successful. Ideally, we shouldn't fail if DB succeeds.
+       // However, if the user was already deleted from Auth somehow, it's fine.
+    }
+
+    await logAction({
+      userId: session.profile.id,
+      action: "ADMIN_DELETE_USER",
+      resourceType: "USER",
+      resourceId: userId,
+      details: { targetRole: targetUser.role },
+    });
+
+    return successResponse(null, "User completely deleted from the system.");
+  } catch (error) {
+    console.error("[DELETE /api/admin/users/[userId]]", error);
+    return errorResponse(ERRORS.INTERNAL.message, ERRORS.INTERNAL.status);
+  }
+}

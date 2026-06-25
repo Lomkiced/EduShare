@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 import { approveStudent, rejectStudent, removeStudent } from "@/lib/actions/faculty";
 import { LoadingButton } from "@/components/shared/LoadingButton";
 
@@ -22,6 +23,7 @@ export function MembersClient({
   pendingStudents: Student[];
   approvedStudents: Student[];
 }) {
+  const router = useRouter();
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
 
   const handleApprove = async (userId: string) => {
@@ -89,9 +91,12 @@ export function MembersClient({
                       student.name.charAt(0).toUpperCase()
                     )}
                   </div>
-                  <div>
-                    <h3 className="font-label-md text-on-surface">{student.name}</h3>
-                    <p className="text-sm text-on-surface-variant">{student.email}</p>
+                  <div 
+                    className="cursor-pointer hover:text-primary transition-colors"
+                    onClick={() => router.push(`/faculty/users/${student.id}`)}
+                  >
+                    <h3 className="font-label-md text-on-surface hover:underline">{student.name}</h3>
+                    <p className="text-sm text-on-surface-variant hover:no-underline">{student.email}</p>
                   </div>
                 </div>
                 <div className="mt-auto flex gap-2 pt-4 border-t border-outline-variant/20">
@@ -137,7 +142,9 @@ export function MembersClient({
           </div>
         ) : (
           <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-xl overflow-hidden">
-            <table className="w-full text-left text-sm">
+            {/* Desktop Table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left text-sm">
               <thead className="bg-surface-container-low border-b border-outline-variant/30 text-on-surface-variant font-label-md">
                 <tr>
                   <th className="px-6 py-4">Student</th>
@@ -157,7 +164,12 @@ export function MembersClient({
                           student.name.charAt(0).toUpperCase()
                         )}
                       </div>
-                      <span className="font-medium text-on-surface">{student.name}</span>
+                      <span 
+                        className="font-medium text-on-surface cursor-pointer hover:text-primary hover:underline transition-colors"
+                        onClick={() => router.push(`/faculty/users/${student.id}`)}
+                      >
+                        {student.name}
+                      </span>
                     </td>
                     <td className="px-6 py-4 text-on-surface-variant">{student.email}</td>
                     <td className="px-6 py-4">
@@ -180,8 +192,53 @@ export function MembersClient({
                     </td>
                   </tr>
                 ))}
-              </tbody>
-            </table>
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Cards */}
+            <div className="block md:hidden divide-y divide-outline-variant/20">
+              {approvedStudents.map((student) => (
+                <div key={student.id} className="p-4 hover:bg-surface-container-lowest/50 transition-colors flex flex-col gap-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold text-sm">
+                        {student.avatarUrl ? (
+                          <img src={student.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
+                        ) : (
+                          student.name.charAt(0).toUpperCase()
+                        )}
+                      </div>
+                      <div>
+                        <span 
+                          className="font-medium text-on-surface block cursor-pointer hover:text-primary hover:underline transition-colors"
+                          onClick={() => router.push(`/faculty/users/${student.id}`)}
+                        >
+                          {student.name}
+                        </span>
+                        <span className="text-xs text-on-surface-variant block">{student.email}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between border-t border-outline-variant/20 pt-3 mt-1">
+                    <span className="inline-flex items-center gap-1.5 py-1 px-2.5 rounded-md text-[11px] font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                      Approved
+                    </span>
+                    <LoadingButton
+                      variant="danger"
+                      isLoading={isProcessing === student.id + "-remove"}
+                      disabled={isProcessing !== null}
+                      onClick={() => handleRemove(student.id)}
+                      className="py-1.5 px-3 text-xs h-8"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">person_remove</span>
+                      Remove
+                    </LoadingButton>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </section>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useToggleUserStatus } from "@/hooks/use-admin";
+import { useToggleUserStatus, useDeleteUser } from "@/hooks/use-admin";
 import { useRouter } from "next/navigation";
 import type { UserProfile } from "@/types";
 import { AddUserModal } from "@/components/admin/AddUserModal";
@@ -21,6 +21,7 @@ export default function UsersClient({ initialUsers }: UsersClientProps) {
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
 
   const { mutate: toggleStatus, isPending } = useToggleUserStatus();
+  const { mutate: deleteUser, isPending: isDeleting } = useDeleteUser();
 
   const filteredUsers = initialUsers.filter((user) => {
     const matchesSearch =
@@ -44,6 +45,16 @@ export default function UsersClient({ initialUsers }: UsersClientProps) {
         },
       }
     );
+  };
+
+  const handleDeleteUser = (userId: string) => {
+    if (window.confirm("Are you sure you want to permanently delete this user? This action cannot be undone.")) {
+      deleteUser(userId, {
+        onSuccess: () => {
+          router.refresh();
+        },
+      });
+    }
   };
 
   return (
@@ -138,9 +149,11 @@ export default function UsersClient({ initialUsers }: UsersClientProps) {
         </div>
       </div>
 
-      {/* Data Table */}
+      {/* Data Table / Mobile Cards */}
       <div className="bg-surface-container-lowest rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.04)] border border-slate-100 overflow-hidden">
-        <div className="overflow-x-auto">
+        
+        {/* Desktop Table */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-outline-variant bg-surface-container-low/50">
@@ -167,8 +180,9 @@ export default function UsersClient({ initialUsers }: UsersClientProps) {
                   key={user.id}
                   user={user}
                   onToggleStatus={() => handleToggleStatus(user.id, user.isActive)}
+                  onDelete={() => handleDeleteUser(user.id)}
                   onEdit={() => setEditingUser(user)}
-                  isPending={isPending}
+                  isPending={isPending || isDeleting}
                 />
               ))}
               {filteredUsers.length === 0 && (
@@ -181,6 +195,26 @@ export default function UsersClient({ initialUsers }: UsersClientProps) {
             </tbody>
           </table>
         </div>
+
+        {/* Mobile Cards */}
+        <div className="block md:hidden divide-y divide-outline-variant/30">
+          {filteredUsers.map((user) => (
+            <MobileUserCard
+              key={user.id}
+              user={user}
+              onToggleStatus={() => handleToggleStatus(user.id, user.isActive)}
+              onDelete={() => handleDeleteUser(user.id)}
+              onEdit={() => setEditingUser(user)}
+              isPending={isPending || isDeleting}
+            />
+          ))}
+          {filteredUsers.length === 0 && (
+            <div className="p-8 text-center text-on-surface-variant font-body-sm">
+              No users found matching your filters.
+            </div>
+          )}
+        </div>
+
         {/* Pagination (Visual only for now) */}
         <div className="p-4 border-t border-outline-variant/30 flex items-center justify-between bg-surface-container-lowest">
           <div className="font-body-sm text-body-sm text-on-surface-variant">
@@ -206,11 +240,13 @@ export default function UsersClient({ initialUsers }: UsersClientProps) {
 function UserTableRow({
   user,
   onToggleStatus,
+  onDelete,
   onEdit,
   isPending,
 }: {
   user: UserProfile;
   onToggleStatus: () => void;
+  onDelete: () => void;
   onEdit: () => void;
   isPending: boolean;
 }) {
@@ -301,9 +337,130 @@ function UserTableRow({
             </span>
             {user.isActive ? "Deactivate" : "Activate"}
           </button>
+          {!user.isActive && (
+            <button
+              onClick={onDelete}
+              disabled={isPending}
+              className="p-1.5 text-error hover:text-error hover:bg-error-container/20 transition-colors rounded-DEFAULT disabled:opacity-50"
+              title="Permanently Delete User"
+            >
+              <span className="material-symbols-outlined text-[18px]" data-icon="delete_forever">
+                delete_forever
+              </span>
+            </button>
+          )}
         </div>
       </td>
     </tr>
+  );
+}
+
+function MobileUserCard({
+  user,
+  onToggleStatus,
+  onDelete,
+  onEdit,
+  isPending,
+}: {
+  user: UserProfile;
+  onToggleStatus: () => void;
+  onDelete: () => void;
+  onEdit: () => void;
+  isPending: boolean;
+}) {
+  const getInitials = (name: string) => {
+    return name.split(" ").map((part) => part[0]).join("").toUpperCase().slice(0, 2);
+  };
+  const isStudent = user.role === "STUDENT";
+  const isFaculty = user.role === "FACULTY";
+
+  return (
+    <div className="p-4 flex flex-col gap-4 bg-surface-container-lowest hover:bg-surface-container-low/20 transition-colors">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-3">
+          {user.avatarUrl ? (
+            <img
+              src={user.avatarUrl}
+              alt={user.name}
+              className="w-10 h-10 rounded-full object-cover shrink-0"
+            />
+          ) : (
+            <div
+              className={`w-10 h-10 rounded-full shrink-0 ${
+                isStudent
+                  ? "bg-primary-container text-on-primary"
+                  : isFaculty
+                  ? "bg-tertiary-container text-on-tertiary"
+                  : "bg-secondary-container text-on-secondary-container"
+              } flex items-center justify-center font-bold text-sm`}
+            >
+              {getInitials(user.name)}
+            </div>
+          )}
+          <div>
+            <div className="font-medium text-on-surface leading-tight">{user.name}</div>
+            <div className="text-xs text-on-surface-variant mt-0.5">{user.email}</div>
+          </div>
+        </div>
+        <span
+          className={`inline-flex items-center px-2 py-1 rounded-DEFAULT shrink-0 ${
+            user.isActive
+              ? "bg-[#F0F9FF] text-[#0284C7]"
+              : "bg-surface-variant text-on-surface-variant"
+          } font-label-sm text-[10px]`}
+        >
+          {user.isActive ? "Active" : "Inactive"}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 text-sm">
+        <div>
+          <span className="text-on-surface-variant text-xs block mb-0.5">Role</span>
+          <span className="capitalize text-on-surface font-medium">{user.role.toLowerCase()}</span>
+        </div>
+        <div>
+          <span className="text-on-surface-variant text-xs block mb-0.5">Department</span>
+          <span className="text-on-surface font-medium truncate">{user.department || "—"}</span>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-end gap-2 pt-2 border-t border-outline-variant/30 mt-1">
+        {!isStudent && (
+          <button
+            onClick={onEdit}
+            className="p-2 text-on-surface-variant hover:text-primary transition-colors rounded-DEFAULT hover:bg-surface-container-low"
+            title="Edit Password"
+          >
+            <span className="material-symbols-outlined text-[20px]" data-icon="edit">edit</span>
+          </button>
+        )}
+        <button
+          onClick={onToggleStatus}
+          disabled={isPending}
+          className={`flex items-center gap-1 px-3 py-2 ${
+            user.isActive
+              ? "text-error hover:bg-error-container/20"
+              : "text-on-surface-variant hover:bg-surface-container-low"
+          } transition-colors rounded-DEFAULT font-label-sm text-sm disabled:opacity-50`}
+          title={user.isActive ? "Deactivate" : "Activate"}
+        >
+          <span className="material-symbols-outlined text-[20px]" data-icon={user.isActive ? "block" : "check_circle"}>
+            {user.isActive ? "block" : "check_circle"}
+          </span>
+          <span className="hidden sm:inline">{user.isActive ? "Deactivate" : "Activate"}</span>
+        </button>
+        {!user.isActive && (
+          <button
+            onClick={onDelete}
+            disabled={isPending}
+            className="p-2 text-error hover:text-error hover:bg-error-container/20 transition-colors rounded-DEFAULT disabled:opacity-50"
+            title="Permanently Delete User"
+          >
+            <span className="material-symbols-outlined text-[20px]" data-icon="delete_forever">delete_forever</span>
+          </button>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -361,7 +518,7 @@ function EditUserModal({
     <Dialog.Root open={!!user} onOpenChange={(open) => !open && onClose()}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/50 z-40" />
-        <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-surface-container-lowest p-6 rounded-xl shadow-lg z-50 w-full max-w-md border border-slate-100">
+        <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-surface-container-lowest p-6 rounded-xl shadow-lg z-50 w-[calc(100%-2rem)] max-w-md max-h-[90vh] overflow-y-auto border border-slate-100">
           <div className="flex justify-between items-center mb-4">
             <Dialog.Title className="text-xl font-bold">Edit User</Dialog.Title>
             <Dialog.Close className="text-on-surface-variant hover:text-on-surface">

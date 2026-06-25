@@ -19,3 +19,16 @@ export function useToggleUserStatus() {
     onError: (err: Error) => toast.error(err.message),
   });
 }
+
+export function useDeleteUser() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (userId: string) =>
+      apiClient.delete(`/api/admin/users/${userId}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+      toast.success("User permanently deleted.");
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
