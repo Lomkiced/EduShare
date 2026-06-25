@@ -114,7 +114,7 @@ model Class {
 
   // Relations
   facultyId   String
-  faculty     User              @relation("FacultyClasses", fields: [facultyId], references: [id])
+  faculty     User              @relation("FacultyClasses", fields: [facultyId], references: [id], onDelete: Cascade)
   members     ClassMembership[]
   posts       Post[]
   // Phase 2
@@ -157,7 +157,7 @@ model Post {
   classId    String
   class      Class        @relation(fields: [classId], references: [id], onDelete: Cascade)
   authorId   String
-  author     User         @relation(fields: [authorId], references: [id])
+  author     User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
   files      PostFile[]
   comments   Comment[]
   submissions Submission[]
@@ -193,7 +193,7 @@ model Comment {
   postId    String
   post      Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
   authorId  String
-  author    User   @relation(fields: [authorId], references: [id])
+  author    User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   @@index([postId])
   @@index([authorId])
@@ -213,7 +213,7 @@ model Submission {
   postId      String
   post        Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
   studentId   String
-  student     User   @relation(fields: [studentId], references: [id])
+  student     User   @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([postId, studentId])
   @@index([postId])
@@ -232,9 +232,9 @@ model Report {
 
   // Relations
   reporterId      String
-  reporter        User   @relation("ReporterRelation", fields: [reporterId], references: [id])
+  reporter        User   @relation("ReporterRelation", fields: [reporterId], references: [id], onDelete: Cascade)
   reportedUserId  String?
-  reportedUser    User?  @relation("ReportedUserRelation", fields: [reportedUserId], references: [id])
+  reportedUser    User?  @relation("ReportedUserRelation", fields: [reportedUserId], references: [id], onDelete: SetNull)
   postId          String?
   post            Post?  @relation(fields: [postId], references: [id], onDelete: SetNull)
 

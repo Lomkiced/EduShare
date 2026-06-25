@@ -31,7 +31,7 @@ export default function ProfileClient({ user, stats }: ProfileClientProps) {
     .join("")
     .toUpperCase();
 
-  const DEPARTMENT_NAME = "COLLEGE OF INFORMATION TECHNOLOGY";
+
 
   const handleAvatarUpload = async (url: string) => {
     const result = await updateAvatarUrl(url);
@@ -88,7 +88,7 @@ export default function ProfileClient({ user, stats }: ProfileClientProps) {
             <div className="flex flex-wrap items-center gap-4 text-muted-foreground">
               <div className="flex items-center gap-1.5">
                 <Briefcase className="w-4 h-4" />
-                <span>{DEPARTMENT_NAME}</span>
+                <span>{user.department || "No department listed"}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <Calendar className="w-4 h-4" />

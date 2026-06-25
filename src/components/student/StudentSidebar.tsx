@@ -2,10 +2,11 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter, useParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useStudentSidebarStore } from "@/store/sidebarStore";
 import { logoutAction } from "@/lib/actions/auth";
 import { useClasses } from "@/hooks/use-class";
+import { JoinSectionModal } from "./JoinSectionModal";
 
 const footerItems = [
   { label: "Profile", icon: "account_circle", href: "/student/profile" },
@@ -14,7 +15,6 @@ const footerItems = [
 export default function StudentSidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const params = useParams();
   const { isOpen, close } = useStudentSidebarStore();
   const [joinModalOpen, setJoinModalOpen] = useState(false);
 
@@ -49,19 +49,21 @@ export default function StudentSidebar() {
             <h1 className="text-lg font-black text-blue-900 font-headline-md tracking-tight leading-none">
               Student Portal
             </h1>
-            <p className="text-slate-500 font-label-sm text-xs uppercase tracking-wider mt-1">
-              Intro to Computing
+            <p className="text-slate-500 font-label-sm text-xs uppercase tracking-wider mt-1 truncate max-w-[150px]">
+              {classes.length > 0 ? classes[0].name : "No Section Joined"}
             </p>
           </div>
         </div>
 
-        <button
-          onClick={() => setJoinModalOpen(true)}
-          className="mt-4 w-full bg-secondary text-on-secondary rounded-lg py-2 px-6 font-label-md text-label-md hover:bg-opacity-90 transition-colors flex items-center justify-center gap-2 shadow-sm"
-        >
-          <span className="material-symbols-outlined text-[18px]">add</span>
-          Join a Section
-        </button>
+        {classes.length === 0 && (
+          <button
+            onClick={() => setJoinModalOpen(true)}
+            className="mt-4 w-full bg-secondary text-on-secondary rounded-lg py-2 px-6 font-label-md text-label-md hover:bg-opacity-90 transition-colors flex items-center justify-center gap-2 shadow-sm"
+          >
+            <span className="material-symbols-outlined text-[18px]">add</span>
+            Join a Section
+          </button>
+        )}
       </div>
 
       {/* Main Navigation */}
@@ -166,7 +168,7 @@ export default function StudentSidebar() {
         </div>
       </div>
 
-
+      <JoinSectionModal open={joinModalOpen} onOpenChange={setJoinModalOpen} />
     </>
   );
 }
