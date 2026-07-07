@@ -55,7 +55,7 @@ export async function adminCreateUserAction(data: AdminCreateUserFormValues) {
           id: authData.user.id,
           name,
           email,
-          department: "College of Information Technology",
+          department: department ?? "College of Information Technology",
           role: role as Role,
           isActive: true,
         },

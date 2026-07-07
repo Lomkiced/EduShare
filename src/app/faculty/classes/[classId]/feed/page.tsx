@@ -157,29 +157,8 @@ export default function FacultyClassFeedPage() {
                 {/* Subject & Section */}
                 <div>
                   <p className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1">Subject & Section</p>
-                  <p className="text-sm font-medium text-on-surface">{classData.subject} — {classData.section}</p>
+                  <p className="text-sm font-medium text-on-surface">{classData.subject} — {classData.name}</p>
                 </div>
-
-                {/* Schedule & Room */}
-                {(classData.schedule || classData.room) && (
-                  <div>
-                    <p className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1">Schedule & Room</p>
-                    <div className="flex flex-col gap-1.5 mt-2">
-                      {classData.schedule && (
-                        <div className="flex items-start gap-2 text-sm text-on-surface">
-                          <span className="material-symbols-outlined text-[16px] text-tertiary shrink-0 mt-0.5">schedule</span>
-                          <span>{classData.schedule}</span>
-                        </div>
-                      )}
-                      {classData.room && (
-                        <div className="flex items-start gap-2 text-sm text-on-surface">
-                          <span className="material-symbols-outlined text-[16px] text-tertiary shrink-0 mt-0.5">meeting_room</span>
-                          <span>{classData.room}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
                 
                 {/* Quick Actions */}
                 <div className="pt-2 border-t border-outline-variant/20 flex flex-col gap-2">
