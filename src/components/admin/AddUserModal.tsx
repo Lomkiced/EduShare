@@ -105,7 +105,19 @@ export function AddUserModal({ open, onOpenChange, onSuccess }: AddUserModalProp
 
           <div>
             <p className="font-label-md text-on-surface mb-2">Role</p>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
+              <label className="cursor-pointer">
+                <input
+                  type="radio"
+                  value="STUDENT"
+                  {...register("role")}
+                  className="sr-only peer"
+                  disabled={isSubmitting}
+                />
+                <div className="w-full text-center py-2 border border-outline-variant rounded bg-surface-container-lowest text-on-surface font-label-sm peer-checked:bg-primary-container peer-checked:text-on-primary-container peer-checked:border-primary-container transition-colors">
+                  Student
+                </div>
+              </label>
               <label className="cursor-pointer">
                 <input
                   type="radio"

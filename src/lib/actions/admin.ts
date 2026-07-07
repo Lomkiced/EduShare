@@ -55,9 +55,10 @@ export async function adminCreateUserAction(data: AdminCreateUserFormValues) {
           id: authData.user.id,
           name,
           email,
-          department: department ?? "College of Information Technology",
+          department: department || "N/A",
           role: role as Role,
           isActive: true,
+          approvalStatus: role === "STUDENT" ? "APPROVED" : null,
         },
       });
 
@@ -79,6 +80,9 @@ export async function adminCreateUserAction(data: AdminCreateUserFormValues) {
     }
   } catch (err: any) {
     console.error("[adminCreateUserAction] Unexpected error:", err);
+    if (err?.name === "SUPABASE_SERVICE_ROLE_KEY_MISSING") {
+      return { success: false as const, error: "Server configuration error: SUPABASE_SERVICE_ROLE_KEY is missing." };
+    }
     return { success: false as const, error: "An internal server error occurred." };
   }
 }

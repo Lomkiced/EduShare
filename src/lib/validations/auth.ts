@@ -68,7 +68,7 @@ export const adminCreateUserSchema = z
       .string()
       .min(1, "Email is required")
       .email("Please enter a valid email"),
-    role: z.enum(["FACULTY", "ADMIN"]),
+    role: z.enum(["STUDENT", "FACULTY", "ADMIN"]),
     department: z.string().optional(),
     password: z
       .string()

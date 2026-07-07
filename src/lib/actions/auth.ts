@@ -196,8 +196,8 @@ export async function registerAction(data: RegisterFormValues) {
 
       // Rollback: delete the auth user we just created so we don't have orphans
       try {
-        const rollbackClient = createAdminClient();
-        await rollbackClient.auth.admin.deleteUser(authData.user.id);
+        const rollbackAdminClient = createAdminClient();
+        await rollbackAdminClient.auth.admin.deleteUser(authData.user.id);
       } catch (rollbackError) {
         console.error("[registerAction] Rollback failed:", rollbackError);
       }
@@ -209,13 +209,13 @@ export async function registerAction(data: RegisterFormValues) {
     }
   } catch (err: any) {
     console.error("[registerAction] Unexpected error:", err);
-    if (err?.message?.includes("SUPABASE_SERVICE_ROLE_KEY") || err?.message?.includes("Missing")) {
-      return { success: false as const, error: "Server configuration error. Please contact the administrator." };
+    if (err?.name === "SUPABASE_SERVICE_ROLE_KEY_MISSING" || err?.message?.includes("SUPABASE_SERVICE_ROLE_KEY") || err?.message?.includes("Missing")) {
+      return { success: false as const, error: "Server configuration error: SUPABASE_SERVICE_ROLE_KEY is missing." };
     }
     if (err?.name === "PrismaClientInitializationError" || err?.message?.includes("DATABASE_URL")) {
       return { success: false as const, error: "Database connection failed. Please contact the administrator." };
     }
-    return { success: false as const, error: "An unexpected error occurred. Please try again." };
+    return { success: false as const, error: err.message || "An unexpected error occurred. Please try again." };
   }
 }
 
