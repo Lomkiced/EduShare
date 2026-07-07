@@ -18,9 +18,9 @@ export function createAdminClient() {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !serviceRoleKey) {
-    throw new Error(
-      "Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variables."
-    );
+    const error = new Error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variables.");
+    error.name = "SUPABASE_SERVICE_ROLE_KEY_MISSING";
+    throw error;
   }
 
   return createClient(supabaseUrl, serviceRoleKey, {

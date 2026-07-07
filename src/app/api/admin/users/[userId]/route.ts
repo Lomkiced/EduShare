@@ -126,8 +126,11 @@ export async function PATCH(
         ? "User activated."
         : "User deactivated."
     );
-  } catch (error) {
+  } catch (error: any) {
     console.error("[PATCH /api/admin/users/[userId]]", error);
+    if (error?.name === "SUPABASE_SERVICE_ROLE_KEY_MISSING") {
+      return errorResponse("Server configuration error: SUPABASE_SERVICE_ROLE_KEY is missing.", 500);
+    }
     return errorResponse(ERRORS.INTERNAL.message, ERRORS.INTERNAL.status);
   }
 }
@@ -185,8 +188,11 @@ export async function DELETE(
     });
 
     return successResponse(null, "User completely deleted from the system.");
-  } catch (error) {
+  } catch (error: any) {
     console.error("[DELETE /api/admin/users/[userId]]", error);
+    if (error?.name === "SUPABASE_SERVICE_ROLE_KEY_MISSING") {
+      return errorResponse("Server configuration error: SUPABASE_SERVICE_ROLE_KEY is missing.", 500);
+    }
     return errorResponse(ERRORS.INTERNAL.message, ERRORS.INTERNAL.status);
   }
 }
