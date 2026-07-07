@@ -120,91 +120,102 @@ export async function loginAction(data: LoginFormValues) {
 // REGISTER
 // ─────────────────────────────────────────────────────────────────────────────
 export async function registerAction(data: RegisterFormValues) {
-  const supabase = createClient();
-  const { name, email, sectionCode, password } = data;
-
-  // 1. Verify that the section code is valid
-  const validClass = await prisma.class.findUnique({
-    where: { classCode: sectionCode },
-  });
-
-  if (!validClass) {
-    return {
-      success: false as const,
-      error: "Invalid Section Code. Please ask your faculty for the correct code.",
-    };
-  }
-
-  // 2. Check if email already exists in Prisma
-  const existingUser = await prisma.user.findUnique({ where: { email } });
-  if (existingUser) {
-    return {
-      success: false as const,
-      error: "An account with this email already exists.",
-    };
-  }
-
-  // 3. Create in Supabase Auth using Admin Client to auto-confirm email
-  // (We don't want them waiting on an email, only Faculty Approval)
-  const adminClient = createAdminClient();
-  const { data: authData, error } = await adminClient.auth.admin.createUser({
-    email,
-    password,
-    email_confirm: true,
-    user_metadata: {
-      role: "STUDENT",
-      name,
-    },
-  });
-
-  if (error) {
-    return { success: false as const, error: error.message };
-  }
-
-  if (!authData.user) {
-    return { success: false as const, error: "Failed to create account." };
-  }
-
-  // 4. Create the Prisma user profile (PENDING) and link to the class
   try {
-    await prisma.$transaction(async (tx) => {
-      // Create User
-      const newUser = await tx.user.create({
-        data: {
-          id: authData.user.id,
-          name,
-          email,
-          role: "STUDENT",
-          isActive: true, // They are technically active, just not approved
-          approvalStatus: "PENDING",
-        },
-      });
+    const supabase = createClient();
+    const { name, email, sectionCode, password } = data;
 
-      // Create ClassMembership
-      await tx.classMembership.create({
-        data: {
-          classId: validClass.id,
-          studentId: newUser.id,
-        },
-      });
+    // 1. Verify that the section code is valid
+    const validClass = await prisma.class.findUnique({
+      where: { classCode: sectionCode },
     });
 
-    return { success: true as const };
-  } catch (dbError: any) {
-    console.error("[registerAction] DB Error:", dbError);
-
-    // Rollback: delete the auth user we just created so we don't have orphans
-    try {
-      const adminClient = createAdminClient();
-      await adminClient.auth.admin.deleteUser(authData.user.id);
-    } catch (rollbackError) {
-      console.error("[registerAction] Rollback failed:", rollbackError);
+    if (!validClass) {
+      return {
+        success: false as const,
+        error: "Invalid Section Code. Please ask your faculty for the correct code.",
+      };
     }
 
-    return {
-      success: false as const,
-      error: "Failed to create user profile. Please try again.",
-    };
+    // 2. Check if email already exists in Prisma
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      return {
+        success: false as const,
+        error: "An account with this email already exists.",
+      };
+    }
+
+    // 3. Create in Supabase Auth using Admin Client to auto-confirm email
+    // (We don't want them waiting on an email, only Faculty Approval)
+    const adminClient = createAdminClient();
+    const { data: authData, error } = await adminClient.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: {
+        role: "STUDENT",
+        name,
+      },
+    });
+
+    if (error) {
+      return { success: false as const, error: error.message };
+    }
+
+    if (!authData.user) {
+      return { success: false as const, error: "Failed to create account." };
+    }
+
+    // 4. Create the Prisma user profile (PENDING) and link to the class
+    try {
+      await prisma.$transaction(async (tx) => {
+        // Create User
+        const newUser = await tx.user.create({
+          data: {
+            id: authData.user.id,
+            name,
+            email,
+            role: "STUDENT",
+            isActive: true, // They are technically active, just not approved
+            approvalStatus: "PENDING",
+          },
+        });
+
+        // Create ClassMembership
+        await tx.classMembership.create({
+          data: {
+            classId: validClass.id,
+            studentId: newUser.id,
+          },
+        });
+      });
+
+      return { success: true as const };
+    } catch (dbError: any) {
+      console.error("[registerAction] DB Error:", dbError);
+
+      // Rollback: delete the auth user we just created so we don't have orphans
+      try {
+        const rollbackClient = createAdminClient();
+        await rollbackClient.auth.admin.deleteUser(authData.user.id);
+      } catch (rollbackError) {
+        console.error("[registerAction] Rollback failed:", rollbackError);
+      }
+
+      return {
+        success: false as const,
+        error: "Failed to create user profile. Please try again.",
+      };
+    }
+  } catch (err: any) {
+    console.error("[registerAction] Unexpected error:", err);
+    if (err?.message?.includes("SUPABASE_SERVICE_ROLE_KEY") || err?.message?.includes("Missing")) {
+      return { success: false as const, error: "Server configuration error. Please contact the administrator." };
+    }
+    if (err?.name === "PrismaClientInitializationError" || err?.message?.includes("DATABASE_URL")) {
+      return { success: false as const, error: "Database connection failed. Please contact the administrator." };
+    }
+    return { success: false as const, error: "An unexpected error occurred. Please try again." };
   }
 }
 
