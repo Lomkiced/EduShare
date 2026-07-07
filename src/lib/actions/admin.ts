@@ -58,7 +58,7 @@ export async function adminCreateUserAction(data: AdminCreateUserFormValues) {
           department: department || "N/A",
           role: role as Role,
           isActive: true,
-          approvalStatus: role === "STUDENT" ? "APPROVED" : null,
+          approvalStatus: "APPROVED",
         },
       });
 
