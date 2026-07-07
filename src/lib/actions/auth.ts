@@ -209,10 +209,13 @@ export async function registerAction(data: RegisterFormValues) {
     }
   } catch (err: any) {
     console.error("[registerAction] Unexpected error:", err);
-    if (err?.name === "SUPABASE_SERVICE_ROLE_KEY_MISSING") {
+    if (err?.name === "SUPABASE_SERVICE_ROLE_KEY_MISSING" || err?.message?.includes("SUPABASE_SERVICE_ROLE_KEY") || err?.message?.includes("Missing")) {
       return { success: false as const, error: "Server configuration error: SUPABASE_SERVICE_ROLE_KEY is missing." };
     }
-    return { success: false as const, error: err.message || "An internal server error occurred." };
+    if (err?.name === "PrismaClientInitializationError" || err?.message?.includes("DATABASE_URL")) {
+      return { success: false as const, error: "Database connection failed. Please contact the administrator." };
+    }
+    return { success: false as const, error: err.message || "An unexpected error occurred. Please try again." };
   }
 }
 
