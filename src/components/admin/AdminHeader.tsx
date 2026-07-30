@@ -3,10 +3,9 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useSidebarStore } from "@/store/sidebarStore";
 import { createClient } from "@/lib/supabase/client";
-import useSWR from "swr";
+import { useNotifications, useMarkNotificationsRead, useClearReadNotifications } from "@/hooks/use-notifications";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 function formatTimeAgo(dateString: string) {
   const date = new Date(dateString);
@@ -29,12 +28,12 @@ export default function AdminHeader() {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const notificationsRef = useRef<HTMLDivElement>(null);
 
-  const { data, mutate } = useSWR("/api/admin/notifications", fetcher, {
-    refreshInterval: 30000,
-  });
+  const { data: notificationsData } = useNotifications();
+  const { mutate: markRead } = useMarkNotificationsRead();
+  const { mutate: clearRead } = useClearReadNotifications();
 
-  const notifications = data?.data || [];
-  const unreadCount = notifications.filter((n: any) => !n.isRead).length;
+  const notifications = notificationsData?.notifications || [];
+  const unreadCount = notificationsData?.unreadCount ?? 0;
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -46,23 +45,10 @@ export default function AdminHeader() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleNotificationClick = async (notification: any) => {
+  const handleNotificationClick = (notification: any) => {
     setIsNotificationsOpen(false);
     if (!notification.isRead) {
-      mutate(
-        {
-          ...data,
-          data: notifications.map((n: any) =>
-            n.id === notification.id ? { ...n, isRead: true } : n
-          ),
-        },
-        false
-      );
-      
-      await fetch(`/api/admin/notifications/${notification.id}/read`, {
-        method: "PATCH",
-      });
-      mutate();
+      markRead([notification.id]);
     }
     
     if (notification.link) {
@@ -70,34 +56,15 @@ export default function AdminHeader() {
     }
   };
 
-  const handleReadAll = async () => {
+  const handleReadAll = () => {
     if (unreadCount === 0) return;
-    
-    mutate(
-      {
-        ...data,
-        data: notifications.map((n: any) => ({ ...n, isRead: true })),
-      },
-      false
-    );
-
-    await fetch(`/api/admin/notifications/read-all`, { method: "PATCH" });
-    mutate();
+    const unreadIds = notifications.filter((n: any) => !n.isRead).map((n: any) => n.id);
+    if (unreadIds.length > 0) markRead(unreadIds);
   };
 
-  const handleClearAll = async () => {
+  const handleClearAll = () => {
     if (unreadCount > 0) return;
-    
-    mutate(
-      {
-        ...data,
-        data: notifications.filter((n: any) => !n.isRead),
-      },
-      false
-    );
-
-    await fetch(`/api/admin/notifications/clear-all`, { method: "DELETE" });
-    mutate();
+    clearRead();
   };
 
   useEffect(() => {
@@ -145,7 +112,9 @@ export default function AdminHeader() {
               notifications
             </span>
             {unreadCount > 0 && (
-              <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-error rounded-full border-2 border-surface-container-lowest"></span>
+              <span className="absolute -top-1 -right-1 bg-error text-white text-[10px] font-bold px-1.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full border-2 border-surface-container-lowest">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
             )}
           </button>
 
@@ -166,7 +135,7 @@ export default function AdminHeader() {
                   </div>
                 ) : (
                   <div className="divide-y divide-surface-variant/50">
-                    {notifications.map((notif: any) => (
+                    {notifications.slice(0, 3).map((notif: any) => (
                       <button
                         key={notif.id}
                         onClick={() => handleNotificationClick(notif)}
@@ -190,33 +159,42 @@ export default function AdminHeader() {
               </div>
               
               {notifications.length > 0 && (
-                <div className="p-3 border-t border-surface-variant bg-surface-container flex items-center justify-between">
-                  <button
-                    onClick={handleReadAll}
-                    className={`text-xs font-medium flex items-center gap-1 transition-colors ${
-                      unreadCount === 0 
-                        ? "text-on-surface-variant opacity-50 cursor-default" 
-                        : "text-on-surface-variant hover:text-primary"
-                    }`}
-                  >
-                    <span className="material-symbols-outlined text-[16px]">done_all</span>
-                    Mark all as read
-                  </button>
-                  <button
-                    onClick={handleClearAll}
-                    disabled={unreadCount > 0}
-                    className={`text-xs font-medium flex items-center gap-1 transition-colors ${
-                      unreadCount > 0 
-                        ? "text-on-surface-variant opacity-50 cursor-not-allowed" 
-                        : "text-error hover:bg-error-container/20 px-2 py-1 -mr-2 rounded-md"
-                    }`}
-                    title={unreadCount > 0 ? "You must read all notifications before clearing." : "Clear all notifications"}
-                  >
-                    <span className="material-symbols-outlined text-[16px]">delete</span>
-                    Clear all
-                  </button>
+                <div className="flex flex-col">
+                  <div className="p-3 border-t border-surface-variant bg-surface-container flex items-center justify-between">
+                    <button
+                      onClick={handleReadAll}
+                      className={`text-xs font-medium flex items-center gap-1 transition-colors ${
+                        unreadCount === 0 
+                          ? "text-on-surface-variant opacity-50 cursor-default" 
+                          : "text-on-surface-variant hover:text-primary"
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-[16px]">done_all</span>
+                      Mark all as read
+                    </button>
+                    <button
+                      onClick={handleClearAll}
+                      disabled={unreadCount > 0}
+                      className={`text-xs font-medium flex items-center gap-1 transition-colors ${
+                        unreadCount > 0 
+                          ? "text-on-surface-variant opacity-50 cursor-not-allowed" 
+                          : "text-error hover:bg-error-container/20 px-2 py-1 -mr-2 rounded-md"
+                      }`}
+                      title={unreadCount > 0 ? "You must read all notifications before clearing." : "Clear all notifications"}
+                    >
+                      <span className="material-symbols-outlined text-[16px]">delete</span>
+                      Clear all
+                    </button>
+                  </div>
                 </div>
               )}
+              <Link
+                href="/admin/notifications"
+                onClick={() => setIsNotificationsOpen(false)}
+                className="p-3 border-t border-surface-variant bg-surface-container-lowest text-center text-sm font-medium text-primary hover:bg-surface-container-low transition-colors block w-full"
+              >
+                See all notifications
+              </Link>
             </div>
           )}
         </div>

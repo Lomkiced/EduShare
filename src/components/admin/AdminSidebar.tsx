@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useNotifications } from "@/hooks/use-notifications";
 import { useSidebarStore } from "@/store/sidebarStore";
 import { logoutAction } from "@/lib/actions/auth";
 import {
@@ -29,6 +30,17 @@ export default function AdminSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { isOpen, close } = useSidebarStore();
+
+  const { data: notificationsData } = useNotifications();
+  const notifications = notificationsData?.notifications || [];
+  const unreadReports = notifications.filter((n: any) => !n.isRead && n.type === "NEW_REPORT").length;
+  const unreadUsers = notifications.filter((n: any) => !n.isRead && n.type === "USER_REGISTERED").length;
+
+  const getBadgeCount = (href: string) => {
+    if (href === "/admin/reports") return unreadReports;
+    if (href === "/admin/users") return unreadUsers;
+    return 0;
+  };
 
   const handleSignOut = async () => {
     await logoutAction();
@@ -66,19 +78,26 @@ export default function AdminSidebar() {
               key={item.href}
               href={item.href}
               onClick={close} // Close sidebar on mobile when navigating
-              className={`px-4 py-3 flex items-center gap-3 transition-all duration-200 ${
+              className={`px-4 py-3 flex items-center justify-between transition-all duration-200 ${
                 isActive
                   ? "bg-primary/50 text-white border-l-4 border-secondary-fixed-dim hover:bg-primary/30"
                   : "text-secondary-fixed-dim/70 hover:text-white hover:bg-primary/30 hover:translate-x-1"
               }`}
             >
-              <span
-                className="material-symbols-outlined"
-                style={{ fontVariationSettings: "'FILL' 0" }}
-              >
-                {item.icon}
-              </span>
-              {item.label}
+              <div className="flex items-center gap-3">
+                <span
+                  className="material-symbols-outlined"
+                  style={{ fontVariationSettings: "'FILL' 0" }}
+                >
+                  {item.icon}
+                </span>
+                {item.label}
+              </div>
+              {getBadgeCount(item.href) > 0 && (
+                <span className="bg-error text-white text-[10px] font-bold px-1.5 min-w-[20px] h-[20px] flex items-center justify-center rounded-full">
+                  {getBadgeCount(item.href) > 99 ? '99+' : getBadgeCount(item.href)}
+                </span>
+              )}
             </Link>
           );
         })}

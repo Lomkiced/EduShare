@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Fire-and-forget admin notification
-    dispatchAdminNotification({
+    await dispatchAdminNotification({
       type: "NEW_REPORT",
       message: `A new report has been filed by ${profile.name}. Reason: ${reason}.`,
       link: "/admin/reports",
