@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useNotifications } from "@/hooks/use-notifications";
 import { useStudentSidebarStore } from "@/store/sidebarStore";
 import { logoutAction } from "@/lib/actions/auth";
 import { useClasses } from "@/hooks/use-class";
@@ -28,6 +29,17 @@ export default function StudentSidebar() {
   const router = useRouter();
   const { isOpen, close } = useStudentSidebarStore();
   const [joinModalOpen, setJoinModalOpen] = useState(false);
+  const { data: notificationsData } = useNotifications();
+
+  const notifications = notificationsData?.notifications || [];
+  const classNotifs = notifications.filter(
+    (n: any) => !n.isRead && ["NEW_POST", "NEW_ASSIGNMENT", "LESSON_PUBLISHED", "ASSESSMENT_GRADED", "CLASS_JOINED"].includes(n.type)
+  ).length;
+
+  const getBadgeCount = (label: string) => {
+    if (label === "My Section") return classNotifs;
+    return 0;
+  };
 
   const { data: classes = [] } = useClasses();
   const firstClassId = classes.length > 0 ? classes[0].id : null;
@@ -94,19 +106,26 @@ export default function StudentSidebar() {
               key={item.href}
               href={item.href}
               onClick={close}
-              className={`flex items-center gap-2 px-3 py-2 transition-all duration-200 ${
+              className={`flex items-center justify-between px-3 py-2 transition-all duration-200 ${
                 isActive
                   ? "bg-white text-blue-900 font-bold border-r-4 border-blue-900 rounded-l-lg hover:bg-slate-100 focus:ring-2 focus:ring-blue-500/20"
                   : "text-slate-500 hover:text-blue-900 rounded-lg hover:bg-slate-100 focus:ring-2 focus:ring-blue-500/20"
               }`}
             >
-              <span
-                className="material-symbols-outlined"
-                style={{ fontVariationSettings: "'FILL' 0" }}
-              >
-                {item.icon}
-              </span>
-              {item.label}
+              <div className="flex items-center gap-2">
+                <span
+                  className="material-symbols-outlined"
+                  style={{ fontVariationSettings: "'FILL' 0" }}
+                >
+                  {item.icon}
+                </span>
+                {item.label}
+              </div>
+              {getBadgeCount(item.label) > 0 && (
+                <span className="bg-error text-white text-[10px] font-bold px-1.5 min-w-[20px] h-[20px] flex items-center justify-center rounded-full">
+                  {getBadgeCount(item.label) > 99 ? '99+' : getBadgeCount(item.label)}
+                </span>
+              )}
             </Link>
           );
         })}

@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { dispatchAdminNotification } from "@/lib/notifications";
 import prisma from "@/lib/prisma";
 import { Role } from "@prisma/client";
 import {
@@ -188,6 +189,13 @@ export async function registerAction(data: RegisterFormValues) {
             studentId: newUser.id,
           },
         });
+      });
+
+      // Notify admins that a new student registered
+      await dispatchAdminNotification({
+        type: "USER_REGISTERED",
+        message: `A new student, ${name}, has registered and is pending approval.`,
+        link: "/admin/users",
       });
 
       return { success: true as const };
