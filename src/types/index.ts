@@ -27,8 +27,8 @@ export interface UserProfile {
   department: string | null;
   role:       Role;
   isActive:   boolean;
-  createdAt:  string;
-  updatedAt:  string;
+  createdAt:  string | Date;
+  updatedAt:  string | Date;
 }
 
 export interface ClassSection {
@@ -81,6 +81,7 @@ export interface Post {
   authorId:           string;
   author:             Pick<UserProfile, "id" | "name" | "avatarUrl" | "role">;
   files:              PostFile[];
+  class?:             { id: string; name: string; classCode: string };
   comments?:          Comment[];
   _count?: {
     comments:    number;

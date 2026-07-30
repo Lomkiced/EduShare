@@ -260,6 +260,7 @@ function AssessmentPanel({ lesson, onClose }: { lesson: Lesson; onClose: () => v
   const [passingScore,  setPassingScore]  = useState(lesson.assessment?.passingScore ?? 75);
   const [maxAttempts,   setMaxAttempts]   = useState(lesson.assessment?.maxAttempts ?? 3);
   const [timeLimitMins, setTimeLimitMins] = useState<string>(String(lesson.assessment?.timeLimitMins ?? ""));
+  const [shuffleQuestions, setShuffleQuestions] = useState(lesson.assessment?.shuffleQuestions ?? false);
 
   const handleSaveSettings = () => {
     const data = {
@@ -267,6 +268,7 @@ function AssessmentPanel({ lesson, onClose }: { lesson: Lesson; onClose: () => v
       passingScore,
       maxAttempts,
       timeLimitMins: timeLimitMins ? Number(timeLimitMins) : null,
+      shuffleQuestions,
     };
     if (lesson.assessment) {
       updateAssessment(data, { onSuccess: () => setShowSettingsForm(false) });
@@ -328,6 +330,17 @@ function AssessmentPanel({ lesson, onClose }: { lesson: Lesson; onClose: () => v
               />
             </div>
           </div>
+          
+          <label className="flex items-center gap-3 cursor-pointer pt-2">
+            <div
+              onClick={() => setShuffleQuestions(!shuffleQuestions)}
+              className={`w-10 h-5 rounded-full transition-colors flex items-center ${shuffleQuestions ? "bg-primary" : "bg-outline-variant"}`}
+            >
+              <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform mx-0.5 ${shuffleQuestions ? "translate-x-5" : "translate-x-0"}`} />
+            </div>
+            <span className="text-sm text-on-surface font-medium">Shuffle Questions & Choices on Retake</span>
+          </label>
+          
           <div className="flex justify-end gap-2 pt-1">
             {lesson.assessment && (
               <Button variant="ghost" onClick={() => setShowSettingsForm(false)}>Cancel</Button>
@@ -348,7 +361,7 @@ function AssessmentPanel({ lesson, onClose }: { lesson: Lesson; onClose: () => v
           <div>
             <p className="text-sm font-semibold text-primary">{lesson.assessment?.title}</p>
             <p className="text-xs text-on-surface-variant mt-0.5">
-              Pass: {lesson.assessment?.passingScore}% · Attempts: {lesson.assessment?.maxAttempts === 0 ? "Unlimited" : lesson.assessment?.maxAttempts} · Time: {lesson.assessment?.timeLimitMins ? `${lesson.assessment.timeLimitMins}min` : "No limit"}
+              Pass: {lesson.assessment?.passingScore}% · Attempts: {lesson.assessment?.maxAttempts === 0 ? "Unlimited" : lesson.assessment?.maxAttempts} · Time: {lesson.assessment?.timeLimitMins ? `${lesson.assessment.timeLimitMins}min` : "No limit"} · Shuffle: {lesson.assessment?.shuffleQuestions ? "On" : "Off"}
             </p>
           </div>
           <Button variant="ghost" size="sm" onClick={() => setShowSettingsForm(true)}>

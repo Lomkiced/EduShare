@@ -38,5 +38,5 @@ next-env.d.ts
 # Prisma
 prisma/migrations/
 
-
+AGENTS.MD
 .claude

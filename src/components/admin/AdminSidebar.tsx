@@ -5,6 +5,17 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useSidebarStore } from "@/store/sidebarStore";
 import { logoutAction } from "@/lib/actions/auth";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const navItems = [
   { label: "Dashboard", icon: "dashboard", href: "/admin/dashboard" },
@@ -84,18 +95,35 @@ export default function AdminSidebar() {
       {/* Bottom Links */}
       <div className="border-t border-primary/50 pt-4 px-2 flex flex-col gap-1">
         {/* Removed Support Link */}
-        <button
-          onClick={handleSignOut}
-          className="w-full text-left text-secondary-fixed-dim/70 hover:text-white px-4 py-3 flex items-center gap-3 hover:bg-primary/30 transition-all duration-200 hover:translate-x-1"
-        >
-          <span
-            className="material-symbols-outlined"
-            style={{ fontVariationSettings: "'FILL' 0" }}
-          >
-            logout
-          </span>
-          Sign Out
-        </button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <button
+              className="w-full text-left text-secondary-fixed-dim/70 hover:text-white px-4 py-3 flex items-center gap-3 hover:bg-primary/30 transition-all duration-200 hover:translate-x-1"
+            >
+              <span
+                className="material-symbols-outlined"
+                style={{ fontVariationSettings: "'FILL' 0" }}
+              >
+                logout
+              </span>
+              Sign Out
+            </button>
+          </AlertDialogTrigger>
+          <AlertDialogContent className="max-w-md bg-surface border border-outline-variant/30 rounded-2xl">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-xl font-bold text-on-surface">Are you sure you want to sign out?</AlertDialogTitle>
+              <AlertDialogDescription className="text-on-surface-variant">
+                You will be securely logged out of the Admin Portal. You will need your credentials to log back in.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="border-outline-variant/50 hover:bg-surface-container text-on-surface">Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleSignOut} className="bg-primary hover:bg-primary/90 text-white rounded-lg">
+                Sign Out
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );

@@ -15,7 +15,7 @@ export default function StudentHeader() {
   const unreadCount = notificationsData?.unreadCount ?? 0;
 
   const initials = user?.name
-    ? user.name.split(" ").map((n) => n[0]).join("").toUpperCase()
+    ? user.name.split(" ").map((n: string) => n[0]).join("").toUpperCase()
     : "S";
 
   return (

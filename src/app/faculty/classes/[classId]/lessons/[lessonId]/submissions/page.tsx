@@ -55,7 +55,7 @@ export default function FacultyAssessmentSubmissionsPage() {
         }
       }
       if (attempt.status === "PASSED") data.isPassed = true;
-      if (attempt.hasPendingShortAnswers) data.pendingGrades = true;
+      if (attempt.status === "IN_PROGRESS" && attempt.submittedAt !== null) data.pendingGrades = true;
 
       // Determine latest attempt for drilling down
       data.latestAttemptId = attempt.id; // since they are ordered asc by DB
