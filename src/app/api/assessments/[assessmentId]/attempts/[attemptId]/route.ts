@@ -12,6 +12,15 @@ import { successResponse, errorResponse, ERRORS } from "@/lib/api-response";
 import { createNotification } from "@/lib/notifications";
 import type { AttemptQuestion, AttemptSession } from "@/types";
 
+function hashString(str: string) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return hash;
+}
+
 export const dynamic = "force-dynamic";
 
 // ─── GET /api/assessments/[assessmentId]/attempts/[attemptId] ─────────────────
@@ -54,7 +63,7 @@ export async function GET(
       return errorResponse(ERRORS.FORBIDDEN.message, ERRORS.FORBIDDEN.status);
     }
 
-    const questions = await prisma.question.findMany({
+    let questions = await prisma.question.findMany({
       where: { assessmentId: params.assessmentId },
       include: {
         choices:    { orderBy: { order: "asc" } },
@@ -62,6 +71,10 @@ export async function GET(
       },
       orderBy: { order: "asc" },
     });
+
+    if (assessment.shuffleQuestions) {
+      questions = questions.sort((a, b) => hashString(a.id + attempt.attemptNumber) - hashString(b.id + attempt.attemptNumber));
+    }
 
     const attemptQuestions: AttemptQuestion[] = questions.map((q) => {
       const savedAnswer = attempt.answers.find((a) => a.questionId === q.id) ?? null;
@@ -72,12 +85,20 @@ export async function GET(
         questionText: q.questionText,
         points:       q.points,
         imageUrl:     q.imageUrl,
-        choices:      q.choices.map(({ isCorrect: _stripped, ...c }) => c),
+        choices: (() => {
+          let mappedChoices = q.choices.map(({ isCorrect: _stripped, ...c }) => c);
+          if (assessment.shuffleQuestions) {
+            mappedChoices = mappedChoices.sort((a, b) => hashString(a.id + attempt.id) - hashString(b.id + attempt.id));
+          }
+          return mappedChoices;
+        })(),
         matchPairs:   q.type === "MATCHING"
           ? q.matchPairs.map(({ rightItem: _stripped, ...p }) => p)
           : undefined,
         shuffledRightItems: q.type === "MATCHING"
-          ? q.matchPairs.map((p) => p.rightItem)
+          ? q.matchPairs.map((p) => p.rightItem).sort((a, b) => (assessment.shuffleQuestions 
+              ? hashString(a + attempt.id) - hashString(b + attempt.id) 
+              : hashString(a) - hashString(b))) // Standard random but predictable sort if not explicitly shuffling questions
           : undefined,
         currentAnswer: savedAnswer as any,
       };
@@ -165,8 +186,8 @@ export async function PATCH(
         case "MULTIPLE_SELECT": {
           const correctIds = new Set(question.choices.filter((c) => c.isCorrect).map((c) => c.id));
           const selectedIds = new Set(answer.selectedChoiceIds);
-          const correctSelected = [...selectedIds].filter((id) => correctIds.has(id)).length;
-          const wrongSelected  = [...selectedIds].filter((id) => !correctIds.has(id)).length;
+          const correctSelected = Array.from(selectedIds).filter((id) => correctIds.has(id)).length;
+          const wrongSelected  = Array.from(selectedIds).filter((id) => !correctIds.has(id)).length;
           const partialRatio   = Math.max(0, (correctSelected - wrongSelected) / correctIds.size);
           isCorrect = correctSelected === correctIds.size && wrongSelected === 0;
           pts = question.points * partialRatio;

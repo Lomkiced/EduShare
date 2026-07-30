@@ -19,6 +19,7 @@ export default function RegisterPage() {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
@@ -30,6 +31,33 @@ export default function RegisterPage() {
       confirmPassword: "",
     },
   });
+
+  const passwordValue = watch("password", "");
+  
+  const calculateStrength = (pass: string) => {
+    let score = 0;
+    if (!pass) return 0;
+    if (pass.length >= 8) score += 1;
+    if (/[a-z]/.test(pass)) score += 1;
+    if (/[A-Z]/.test(pass)) score += 1;
+    if (/[0-9]/.test(pass) || /[^a-zA-Z0-9]/.test(pass)) score += 1;
+    return score;
+  };
+
+  const strength = calculateStrength(passwordValue);
+  
+  const getStrengthDetails = (score: number) => {
+    if (passwordValue.length === 0) return { label: "", color: "bg-outline-variant/30", text: "text-on-surface-variant/50" };
+    switch (score) {
+      case 1: return { label: "Weak", color: "bg-error", text: "text-error" };
+      case 2: return { label: "Fair", color: "bg-orange-400", text: "text-orange-500" };
+      case 3: return { label: "Good", color: "bg-emerald-400", text: "text-emerald-500" };
+      case 4: return { label: "Strong", color: "bg-emerald-600", text: "text-emerald-600" };
+      default: return { label: "Very Weak", color: "bg-error", text: "text-error" };
+    }
+  };
+
+  const strengthDetails = getStrengthDetails(strength);
 
   const onSubmit = async (data: RegisterFormValues) => {
     setIsSubmitting(true);
@@ -109,16 +137,41 @@ export default function RegisterPage() {
           </p>
         </div>
 
-        <FormInput
-          id="password"
-          label="Password"
-          type="password"
-          placeholder="••••••••"
-          icon="lock"
-          {...register("password")}
-          error={errors.password?.message}
-          disabled={isSubmitting}
-        />
+        <div className="space-y-1">
+          <FormInput
+            id="password"
+            label="Password"
+            type="password"
+            placeholder="••••••••"
+            icon="lock"
+            {...register("password")}
+            error={errors.password?.message}
+            disabled={isSubmitting}
+          />
+          
+          <div className="space-y-1.5 px-1 pt-1">
+            <div className="flex gap-1.5 h-1.5 w-full">
+              {[1, 2, 3, 4].map((level) => (
+                <div 
+                  key={level} 
+                  className={`flex-1 rounded-full transition-colors duration-300 ${
+                    passwordValue.length > 0 && level <= Math.max(1, strength) 
+                      ? strengthDetails.color 
+                      : "bg-outline-variant/30"
+                  }`} 
+                />
+              ))}
+            </div>
+            <div className="flex justify-between items-center h-4">
+              <span className="text-[11px] font-medium text-on-surface-variant/70">
+                {passwordValue.length > 0 ? "Password strength" : ""}
+              </span>
+              <span className={`text-[11px] font-bold ${strengthDetails.text}`}>
+                {strengthDetails.label}
+              </span>
+            </div>
+          </div>
+        </div>
 
         <FormInput
           id="confirmPassword"

@@ -11,6 +11,15 @@ import { getAuthSession } from "@/lib/auth-session";
 import { successResponse, errorResponse, ERRORS } from "@/lib/api-response";
 import type { AttemptQuestion, AttemptSession } from "@/types";
 
+function hashString(str: string) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return hash;
+}
+
 export const dynamic = "force-dynamic";
 
 // ─── GET /api/assessments/[assessmentId]/attempts ─────────────────────────────
@@ -117,8 +126,11 @@ export async function POST(
       orderBy: { order: "asc" },
     });
 
+    // Note: We don't sort questions deterministically here because the array
+    // is built once. However, for consistency we can use attemptCount or just Math.random.
+    // Actually, wait, `questions` is the array of questions. If we want it to be deterministic per attempt, we can seed it with attemptCount.
     if (assessment.shuffleQuestions) {
-      questions = questions.sort(() => Math.random() - 0.5);
+      questions = questions.sort((a, b) => hashString(a.id + attemptCount) - hashString(b.id + attemptCount));
     }
 
     // Create the attempt record
@@ -134,7 +146,7 @@ export async function POST(
       },
     });
 
-    // Build AttemptSession — strip isCorrect, shuffle MATCHING right items
+    // Build AttemptSession — strip isCorrect, shuffle MATCHING right items, and shuffle choices if enabled
     const attemptQuestions: AttemptQuestion[] = questions.map((q) => ({
       id:           q.id,
       type:         q.type,
@@ -142,12 +154,18 @@ export async function POST(
       questionText: q.questionText,
       points:       q.points,
       imageUrl:     q.imageUrl,
-      choices:      q.choices.map(({ isCorrect: _stripped, ...c }) => c),
+      choices: (() => {
+        let mappedChoices = q.choices.map(({ isCorrect: _stripped, ...c }) => c);
+        if (assessment.shuffleQuestions) {
+          mappedChoices = mappedChoices.sort((a, b) => hashString(a.id + attempt.id) - hashString(b.id + attempt.id));
+        }
+        return mappedChoices;
+      })(),
       matchPairs:   q.type === "MATCHING"
         ? q.matchPairs.map(({ rightItem: _stripped, ...p }) => p)
         : undefined,
       shuffledRightItems: q.type === "MATCHING"
-        ? q.matchPairs.map((p) => p.rightItem).sort(() => Math.random() - 0.5)
+        ? q.matchPairs.map((p) => p.rightItem).sort((a, b) => hashString(a + attempt.id) - hashString(b + attempt.id))
         : undefined,
       currentAnswer: null,
     }));

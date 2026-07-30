@@ -36,13 +36,13 @@ export default function RecentFeedPreview({ posts }: RecentFeedPreviewProps) {
               className={post.class?.name || "Class"}
               classCode={post.class?.classCode || "Code"}
               authorName={post.author?.name || "Unknown"}
-              authorRole={post.author?.role || "STUDENT"}
+              authorRole={(post.author?.role as "STUDENT" | "FACULTY") || "STUDENT"}
               content={post.content}
               timeAgo={new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(
                 Math.ceil((new Date(post.createdAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
                 "day"
               )}
-              fileCount={post._count?.files || 0}
+              fileCount={post.files?.length || 0}
               commentCount={post._count?.comments || 0}
               bandColor={post.isSubmissionPost ? "tertiary" : "primary"}
               href={`/student/classes/${post.classId}/feed`}

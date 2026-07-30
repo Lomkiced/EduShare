@@ -42,7 +42,7 @@ export default function StudentLessonDetailPage() {
     startAttempt(undefined, {
       onSuccess: (data) => {
         router.push(
-          `/student/classes/${classId}/lessons/${lessonId}/assessment?attemptId=${data.attempt.id}&aId=${lesson.assessment.id}`
+          `/student/classes/${classId}/lessons/${lessonId}/assessment?attemptId=${data.attempt.id}&aId=${lesson!.assessment!.id}`
         );
       },
     });

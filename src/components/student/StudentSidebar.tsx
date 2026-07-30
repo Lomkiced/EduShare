@@ -7,6 +7,17 @@ import { useStudentSidebarStore } from "@/store/sidebarStore";
 import { logoutAction } from "@/lib/actions/auth";
 import { useClasses } from "@/hooks/use-class";
 import { JoinSectionModal } from "./JoinSectionModal";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const footerItems = [
   { label: "Profile", icon: "account_circle", href: "/student/profile" },
@@ -128,18 +139,30 @@ export default function StudentSidebar() {
             </Link>
           );
         })}
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-2 px-3 py-2 text-slate-500 hover:text-error hover:bg-error-container/20 rounded-lg transition-all duration-200 focus:ring-2 focus:ring-error/20 w-full text-left"
-        >
-          <span
-            className="material-symbols-outlined"
-            style={{ fontVariationSettings: "'FILL' 0" }}
-          >
-            logout
-          </span>
-          Log Out
-        </button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <button className="flex items-center gap-2 px-3 py-2 text-slate-500 hover:text-error hover:bg-error-container/20 rounded-lg transition-all duration-200 focus:ring-2 focus:ring-error/20 w-full text-left">
+              <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 0" }}>
+                logout
+              </span>
+              Log Out
+            </button>
+          </AlertDialogTrigger>
+          <AlertDialogContent className="max-w-md bg-surface border border-outline-variant/30 rounded-2xl">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-xl font-bold text-on-surface">Are you sure you want to log out?</AlertDialogTitle>
+              <AlertDialogDescription className="text-on-surface-variant">
+                You will be securely logged out of the Student Portal. You will need your credentials to log back in.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="border-outline-variant/50 hover:bg-surface-container text-on-surface">Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleLogout} className="bg-primary hover:bg-primary/90 text-white rounded-lg">
+                Log Out
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );

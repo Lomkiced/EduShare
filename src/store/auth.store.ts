@@ -7,13 +7,13 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { AuthUser } from "@/types";
+import type { UserProfile } from "@/types";
 
 interface AuthState {
-  user: AuthUser | null;
+  user: UserProfile | null;
   isLoading: boolean;
   // Actions
-  setUser: (user: AuthUser | null) => void;
+  setUser: (user: UserProfile | null) => void;
   setLoading: (loading: boolean) => void;
   clearUser: () => void;
 }

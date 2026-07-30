@@ -2,7 +2,22 @@ import React from "react";
 import { redirect } from "next/navigation";
 import { getAuthSession } from "@/lib/auth-session";
 import prisma from "@/lib/prisma";
-import DashboardAnalytics from "@/components/faculty/DashboardAnalytics";
+import nextDynamic from "next/dynamic";
+import { Skeleton } from "@/components/ui/skeleton";
+
+const DashboardAnalytics = nextDynamic(
+  () => import("@/components/faculty/DashboardAnalytics"),
+  { 
+    ssr: false, 
+    loading: () => (
+      <div className="mt-8 grid grid-cols-1 xl:grid-cols-3 gap-6 animate-pulse">
+        <Skeleton className="xl:col-span-2 h-[400px] rounded-3xl bg-surface-container-high/50" />
+        <Skeleton className="h-[400px] rounded-3xl bg-surface-container-high/50" />
+        <Skeleton className="xl:col-span-3 h-[450px] rounded-3xl bg-surface-container-high/50" />
+      </div>
+    )
+  }
+);
 
 export const dynamic = "force-dynamic";
 

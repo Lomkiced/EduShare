@@ -90,7 +90,7 @@ function QuestionRenderer({
             onClick={() => {
               const next = new Set(selected);
               next.has(c.id) ? next.delete(c.id) : next.add(c.id);
-              save({ selectedChoiceIds: [...next] });
+              save({ selectedChoiceIds: Array.from(next) });
             }}
             className={cn(
               "w-full text-left px-4 py-3 rounded-xl border transition-all text-sm font-medium",

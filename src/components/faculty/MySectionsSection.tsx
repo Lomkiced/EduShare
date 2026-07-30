@@ -37,6 +37,7 @@ export default function MySectionsSection({ sections }: MySectionsSectionProps) 
             return (
               <SectionCard
                 key={section.id}
+                id={section.id}
                 sectionCode={section.classCode}
                 sectionLabel={section.name}
                 schedule={section.subject} // Using subject for schedule text in this mockup
