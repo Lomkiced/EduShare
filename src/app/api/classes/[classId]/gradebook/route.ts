@@ -65,6 +65,13 @@ export async function GET(
       where: {
         postId: { in: assignments.map(a => a.id) },
         studentId: { in: studentIds }
+      },
+      select: {
+        id: true,
+        postId: true,
+        studentId: true,
+        status: true,
+        submittedAt: true,
       }
     });
 
@@ -73,6 +80,15 @@ export async function GET(
       where: {
         assessmentId: { in: assessments.map(a => a.id) },
         studentId: { in: studentIds }
+      },
+      select: {
+        id: true,
+        assessmentId: true,
+        studentId: true,
+        attemptNumber: true,
+        score: true,
+        status: true,
+        submittedAt: true,
       },
       orderBy: [
         { studentId: 'asc' },

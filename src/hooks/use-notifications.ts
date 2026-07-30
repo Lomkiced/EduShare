@@ -15,7 +15,6 @@ export function useNotifications(unreadOnly = false) {
       apiClient.get<NotificationsResponse>(
         `/api/notifications${unreadOnly ? "?unreadOnly=true" : ""}`
       ),
-    refetchInterval: 60_000, // Poll every 60s as fallback
   });
 
   // REAL-TIME: Subscribe to Supabase Realtime for instant updates

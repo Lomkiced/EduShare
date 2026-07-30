@@ -1,13 +1,31 @@
-import { Loader2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function FacultyLoading() {
   return (
-    <div className="flex-1 min-h-[calc(100vh-4rem)] flex flex-col items-center justify-center p-8">
-      <div className="w-16 h-16 rounded-2xl bg-secondary-container text-on-secondary-container flex items-center justify-center mb-6 shadow-sm animate-pulse">
-        <Loader2 className="w-8 h-8 animate-spin" />
+    <div className="p-6 md:p-8 max-w-[1600px] mx-auto w-full animate-pulse">
+      {/* Header Skeleton */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-8">
+        <div>
+          <Skeleton className="h-10 w-64 mb-2" />
+          <Skeleton className="h-5 w-96" />
+        </div>
+        <div className="flex gap-3">
+          <Skeleton className="h-10 w-32 rounded-lg" />
+        </div>
       </div>
-      <h2 className="text-2xl font-bold text-on-surface mb-2 animate-pulse">Loading Faculty Portal</h2>
-      <p className="text-on-surface-variant max-w-md text-center">Fetching your sections, assignments, and student data...</p>
+
+      {/* Generic Content Skeleton */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        {[1, 2, 3].map((i) => (
+          <Skeleton key={i} className="h-40 rounded-3xl bg-surface-container-lowest" />
+        ))}
+      </div>
+      
+      <div className="space-y-4">
+        {[1, 2, 3, 4].map((i) => (
+          <Skeleton key={i} className="h-20 w-full rounded-2xl bg-surface-container-lowest" />
+        ))}
+      </div>
     </div>
   );
 }
