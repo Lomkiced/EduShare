@@ -12,7 +12,6 @@ export function usePosts(classId: string) {
     queryKey: ["posts", classId],
     queryFn:  () => apiClient.get<Post[]>(`/api/posts?classId=${classId}`),
     enabled:  !!classId,
-    refetchInterval: 30_000, // Auto-refresh every 30s
   });
 }
 
@@ -22,7 +21,6 @@ export function useFeedPosts(classId: string) {
     queryKey: ["posts", classId, "feed"],
     queryFn:  () => apiClient.get<Post[]>(`/api/posts?classId=${classId}&isSubmission=false`),
     enabled:  !!classId,
-    refetchInterval: 30_000,
   });
 }
 

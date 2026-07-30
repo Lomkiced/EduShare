@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
         { isPinned: "desc" },  // Pinned posts first
         { createdAt: "desc" }, // Then newest
       ],
-      take: classId ? undefined : 20, // Limit to 20 if fetching across all classes
+      take: classId ? 50 : 20, // Limit to 50 for a specific class, 20 for feed
     });
 
     return successResponse(posts);

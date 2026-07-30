@@ -11,7 +11,19 @@ export default function StudentClassesPage() {
   const { data: classes = [], isLoading } = useClasses();
 
   if (isLoading) {
-    return <div className="p-12 text-center text-on-surface-variant font-body-lg">Loading classes...</div>;
+    return (
+      <div className="p-6 md:p-8 max-w-[1200px] mx-auto w-full flex flex-col gap-8 animate-in fade-in duration-500">
+        <div className="mb-4">
+          <div className="h-10 w-48 bg-surface-container-high rounded-lg animate-pulse mb-2" />
+          <div className="h-6 w-96 bg-surface-container-high rounded animate-pulse" />
+        </div>
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="animate-pulse bg-surface-container-lowest rounded-xl border border-outline-variant/20 h-64" />
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (

@@ -50,6 +50,7 @@ export async function GET(request: NextRequest) {
           student: { select: { id: true, name: true, avatarUrl: true, email: true } },
         },
         orderBy: { submittedAt: "desc" },
+        take: 100, // Limit memory usage
       });
       return successResponse(submissions);
     }
@@ -61,6 +62,7 @@ export async function GET(request: NextRequest) {
           student: { select: { id: true, name: true, avatarUrl: true, email: true } },
         },
         orderBy: { submittedAt: "desc" },
+        take: 100, // Limit memory usage
       });
       return successResponse(submissions);
     }
