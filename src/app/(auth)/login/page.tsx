@@ -10,6 +10,7 @@ import { FormInput } from "@/components/auth/FormInput";
 import { LoadingButton } from "@/components/shared/LoadingButton";
 import { loginSchema, LoginFormValues } from "@/lib/validations/auth";
 import { loginAction } from "@/lib/actions/auth";
+import { suggestEmailCorrection } from "@/lib/utils/email-typo";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -18,6 +19,7 @@ export default function LoginPage() {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -26,6 +28,9 @@ export default function LoginPage() {
       password: "",
     },
   });
+
+  const emailValue = watch("email", "");
+  const emailSuggestion = suggestEmailCorrection(emailValue);
 
   const onSubmit = async (data: LoginFormValues) => {
     setIsSubmitting(true);
@@ -76,10 +81,11 @@ export default function LoginPage() {
           id="email"
           label="Email Address"
           type="email"
-          placeholder="user@edushare.edu"
+          placeholder="user@gmail.com"
           icon="mail"
           {...register("email")}
           error={errors.email?.message}
+          warning={emailSuggestion ? `Did you mean ${emailSuggestion}?` : undefined}
           disabled={isSubmitting}
         />
 

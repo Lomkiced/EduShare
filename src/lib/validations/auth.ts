@@ -1,10 +1,22 @@
 import { z } from "zod";
+import { suggestEmailCorrection } from "../utils/email-typo";
+
+const strictEmailSchema = z
+  .string()
+  .min(1, "Email is required")
+  .email("Please enter a valid email")
+  .superRefine((val, ctx) => {
+    const suggestion = suggestEmailCorrection(val);
+    if (suggestion) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Did you mean ${suggestion}?`,
+      });
+    }
+  });
 
 export const loginSchema = z.object({
-  email: z
-    .string()
-    .min(1, "Email is required")
-    .email("Please enter a valid email"),
+  email: strictEmailSchema,
   password: z
     .string()
     .min(1, "Password is required")
@@ -17,10 +29,7 @@ export const registerSchema = z
       .string()
       .min(1, "Full name is required")
       .min(2, "Name must be at least 2 characters"),
-    email: z
-      .string()
-      .min(1, "Email is required")
-      .email("Please enter a valid email"),
+    email: strictEmailSchema,
     sectionCode: z
       .string()
       .min(1, "Section Code is required")
@@ -38,10 +47,7 @@ export const registerSchema = z
   });
 
 export const forgotPasswordSchema = z.object({
-  email: z
-    .string()
-    .min(1, "Email is required")
-    .email("Please enter a valid email"),
+  email: strictEmailSchema,
 });
 
 export const resetPasswordSchema = z
@@ -64,10 +70,7 @@ export const adminCreateUserSchema = z
       .string()
       .min(1, "Full name is required")
       .min(2, "Name must be at least 2 characters"),
-    email: z
-      .string()
-      .min(1, "Email is required")
-      .email("Please enter a valid email"),
+    email: strictEmailSchema,
     role: z.enum(["STUDENT", "FACULTY", "ADMIN"]),
     department: z.string().optional(),
     password: z

@@ -11,6 +11,7 @@ import { FormInput } from "@/components/auth/FormInput";
 import { LoadingButton } from "@/components/shared/LoadingButton";
 import { registerSchema, RegisterFormValues } from "@/lib/validations/auth";
 import { registerAction } from "@/lib/actions/auth";
+import { suggestEmailCorrection } from "@/lib/utils/email-typo";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -33,6 +34,8 @@ export default function RegisterPage() {
   });
 
   const passwordValue = watch("password", "");
+  const emailValue = watch("email", "");
+  const emailSuggestion = suggestEmailCorrection(emailValue);
   
   const calculateStrength = (pass: string) => {
     let score = 0;
@@ -111,10 +114,11 @@ export default function RegisterPage() {
           id="email"
           label="Email Address"
           type="email"
-          placeholder="student@edushare.edu"
+          placeholder="student@gmail.com"
           icon="mail"
           {...register("email")}
           error={errors.email?.message}
+          warning={emailSuggestion ? `Did you mean ${emailSuggestion}?` : undefined}
           disabled={isSubmitting}
         />
 

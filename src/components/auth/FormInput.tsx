@@ -8,11 +8,12 @@ interface FormInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label: string;
   icon?: string;
   error?: string;
+  warning?: string;
   rightElement?: React.ReactNode;
 }
 
 export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
-  ({ id, label, icon, error, rightElement, className, type = "text", ...props }, ref) => {
+  ({ id, label, icon, error, warning, rightElement, className, type = "text", ...props }, ref) => {
     const [showPassword, setShowPassword] = useState(false);
     
     const isPassword = type === "password";
@@ -50,7 +51,7 @@ export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
                 : "border-outline-variant focus:border-primary focus:ring-primary"
             )}
             aria-invalid={!!error}
-            aria-describedby={error ? `${id}-error` : undefined}
+            aria-describedby={error ? `${id}-error` : (warning ? `${id}-warning` : undefined)}
             {...props}
           />
           {isPassword && (
@@ -70,11 +71,15 @@ export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
             </button>
           )}
         </div>
-        {error && (
+        {error ? (
           <p id={`${id}-error`} className="mt-1 text-error font-label-sm">
             {error}
           </p>
-        )}
+        ) : warning ? (
+          <p id={`${id}-warning`} className="mt-1 text-on-surface-variant/70 text-[11px] font-medium">
+            {warning}
+          </p>
+        ) : null}
       </div>
     );
   }

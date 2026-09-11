@@ -30,6 +30,7 @@ export default function VideoPlayer({
   className,
   onCompleted,
 }: VideoPlayerProps) {
+  const containerRef   = useRef<HTMLDivElement>(null);
   const videoRef       = useRef<HTMLVideoElement>(null);
   const heartbeatRef   = useRef<NodeJS.Timeout | null>(null);
   const watchedRef     = useRef(initialWatchedSeconds);
@@ -41,6 +42,7 @@ export default function VideoPlayer({
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration]     = useState(videoDuration || 0);
   const [showControls, setShowControls] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const controlsTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const { mutate: sendHeartbeat } = useSendHeartbeat(lessonId);
@@ -144,6 +146,14 @@ export default function VideoPlayer({
     };
   }, [handleTimeUpdate, handleSeeking, handlePlay, handlePause, handleEnded, handleLoadedMetadata, stopHeartbeat]);
 
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
+
   // ─── Control actions ────────────────────────────────────────────────────────
   const togglePlay = () => {
     const video = videoRef.current;
@@ -156,6 +166,23 @@ export default function VideoPlayer({
     if (!video) return;
     video.muted = !video.muted;
     setIsMuted(video.muted);
+  };
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      if (containerRef.current?.requestFullscreen) {
+        containerRef.current.requestFullscreen().catch(err => {
+          console.error(`Error attempting to enable fullscreen: ${err.message}`);
+        });
+      } else if ((videoRef.current as any)?.webkitEnterFullscreen) {
+        // Fallback for iOS Safari
+        (videoRef.current as any).webkitEnterFullscreen();
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
   };
 
   const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -185,8 +212,9 @@ export default function VideoPlayer({
 
   return (
     <div
+      ref={containerRef}
       className={cn(
-        "relative bg-black rounded-xl overflow-hidden group select-none",
+        "relative bg-black rounded-xl overflow-hidden group select-none flex flex-col justify-center",
         className
       )}
       onMouseMove={resetControlsTimer}
@@ -199,6 +227,7 @@ export default function VideoPlayer({
         className="w-full h-full object-contain"
         preload="metadata"
         playsInline
+        controls={false}
       />
 
       {/* ── Completion badge ─────────────────────────────────────────── */}
@@ -290,10 +319,12 @@ export default function VideoPlayer({
 
           {/* Fullscreen */}
           <button
-            onClick={() => videoRef.current?.requestFullscreen()}
+            onClick={toggleFullscreen}
             className="text-white hover:text-white/80 transition-colors"
           >
-            <span className="material-symbols-outlined text-[22px]">fullscreen</span>
+            <span className="material-symbols-outlined text-[22px]">
+              {isFullscreen ? "fullscreen_exit" : "fullscreen"}
+            </span>
           </button>
         </div>
       </div>
@@ -315,3 +346,4 @@ export default function VideoPlayer({
     </div>
   );
 }
+
